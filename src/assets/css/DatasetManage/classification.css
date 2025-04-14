@@ -1,0 +1,520 @@
+.classification {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+/*
+标签样式
+*/
+.classManage {
+  position: absolute;
+  top: 145px !important;
+  left: 75px;
+  width: 300px;
+  padding: 24px 6px 8px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  background: #fff;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  -webkit-box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.3);
+  z-index: 999999;
+}
+.classManage .labelManage-Info {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.classManage .labelManage-Info .labelManage-menu {
+  width: 100%;
+  display: flex;
+}
+.labelManage-menu .labelManage-search {
+  flex: 9;
+}
+.labelManage-menu .labelManage-search .labelSearch-input {
+  width: 100%;
+  height: 30px;
+  text-indent: 8px;
+  border: 1px solid #e1e1e1;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  font-size: 14px;
+}
+.labelManage-menu .labelManage-createLabel {
+  flex: 3;
+  text-align: center;
+  line-height: 30px;
+}
+.labelManage-Info .labelManage-subList {
+  font-size: 12px;
+  margin-top: 10px;
+}
+.labelManage-Info .labelManage-group {
+  width: 100%;
+  margin-top: 10px;
+  flex: auto;
+}
+.labelManage-Info .labelManage-group .labelTip {
+  text-align: center;
+  font-size: 14px;
+}
+.labelManage-Info .labelManage-group .labelManage-ul {
+  height: 100%;
+  overflow-y: auto;
+}
+.labelManage-Info .labelManage-group .labelManage-ul li {
+  display: inline-block;
+  position: relative;
+  vertical-align: top;
+  -webkit-border-radius: 50px;
+  -moz-border-radius: 50px;
+  border-radius: 50px;
+  border: 1px solid #999;
+  padding: 3px 6px;
+  margin: 4px 4px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-transition: 0.3s;
+  -moz-transition: 0.3s;
+  -ms-transition: 0.3s;
+  -o-transition: 0.3s;
+  transition: 0.3s;
+}
+.labelManage-Info .labelManage-group .labelManage-ul li:hover {
+  border: 1px solid #409EFF;
+  color: #409EFF;
+}
+.labelManage-Info .labelManage-group .labelManage-ul .class_active {
+  border: 1px solid #409EFF;
+  color: #409EFF;
+}
+.classManage .labelManage-create {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.classManage .labelManage-Title {
+  font-size: 20px;
+}
+.classManage .labelManage-create .labelCreate {
+  margin-top: 20px;
+}
+.classManage .labelManage-create .labelCreate label {
+  width: 80px;
+  text-align: right;
+  font-size: 14px;
+  line-height: 30px;
+  font-weight: normal;
+}
+.classManage .labelManage-create .labelCreate .labelCreate-nameInput {
+  width: 195px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  border: 1px solid #e1e1e1;
+  font-size: 14px;
+  height: 30px;
+  text-indent: 8px;
+}
+.classManage .labelManage-create .labelCreate .colorPicker {
+  display: inline-block;
+  vertical-align: top;
+  width: 20px;
+  height: 20px;
+  background: #ff0000;
+  cursor: pointer;
+  margin-top: 5px;
+}
+.classManage .labelManage-create .labelCreate .colorHex {
+  height: 26px;
+  width: 60px;
+  font-size: 12px;
+  margin-left: 8px;
+  outline: none;
+}
+.classManage .labelManage-create .labelCreateButtons {
+  margin-top: 50px;
+  text-align: center;
+}
+.classManage .labelManage-create .labelCreateButtons button {
+  margin: 0 10px;
+}
+.classManage .closeLabelManage {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  font-size: 18px;
+  cursor: pointer;
+}
+.deleteLabelManage {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  font-size: 18px;
+  cursor: pointer;
+}
+.classManage::after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 15px;
+  left: -9px;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-right: 10px solid #fff;
+}
+/*
+ 结果集展示
+ */
+.resultPanel {
+  width: 300px;
+  height: 100%;
+  background: #293245;
+  border-left: 1px solid #293245;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+  display: flex;
+  flex-direction: column;
+}
+.resultPanel .resultArea {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.resultPanel .resultArea .title {
+  width: 100%;
+  color: #fff;
+  height: 36px;
+  line-height: 36px;
+  font-size: 12px;
+  text-indent: 10px;
+  -webkit-box-shadow: 0 1px 3px 0 #3c5167;
+  -moz-box-shadow: 0 1px 3px 0 #3c5167;
+  box-shadow: 0 1px 3px 0 #3c5167;
+  background: #212d3f;
+  display: flex;
+  justify-content: center;
+}
+.resultPanel .resultArea .title .title_label {
+  flex: 1;
+}
+.resultPanel .resultArea .title .title_delete {
+  width: 50px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.resultPanel .resultArea .resultList_head {
+  width: 100%;
+  height: 30px;
+  line-height: 30px;
+  font-size: 12px;
+  padding-left: 10px;
+  padding-right: 10px;
+  position: relative;
+  color: #fff;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+.resultList_head .headChildren {
+  width: 100%;
+  height: 30px;
+  border-bottom: 1px solid #3c5167;
+}
+.resultList_head .headChildren .headName {
+  display: inherit;
+  position: absolute;
+  left: 25px;
+}
+.resultList_head .headChildren .headDisplay {
+  position: absolute;
+  display: inherit;
+  right: 10px;
+}
+.resultList_head .headChildren .headDelete {
+  position: absolute;
+  display: inherit;
+  right: 50px;
+}
+.resultList_head .headChildren .headEdit {
+  position: absolute;
+  display: inherit;
+  right: 100px;
+}
+.resultGroup .result_list {
+  width: 100%;
+  height: 28px;
+  line-height: 28px;
+  color: #999;
+  position: relative;
+}
+.resultGroup .result_list .result_no {
+  width: 28px;
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  font-size: 12px;
+  user-select: none;
+}
+.resultGroup .result_list .result_color {
+  width: 10px;
+  height: 10px;
+  background: #ff0000;
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  border-radius: 50%;
+  margin-right: 10px;
+  cursor: pointer;
+}
+.resultGroup .result_list .result_Name {
+  width: 220px;
+  font-size: 12px;
+  line-height: 28px;
+  color: #fff;
+  display: inline-block;
+  vertical-align: top;
+  border: 0;
+  background: transparent;
+  user-select: none;
+  cursor: pointer;
+}
+.resultGroup .result_list .result_Name[disabled=true] {
+  cursor: default;
+}
+.resultGroup .result_list i {
+  display: block;
+  position: absolute;
+  font-style: normal;
+  font-size: 12px;
+  height: 28px;
+  line-height: 28px;
+  color: #fff;
+  top: 0;
+  cursor: pointer;
+}
+.resultGroup .result_list .editLabelName {
+  right: 115px;
+}
+.resultGroup .result_list .deleteLabelName {
+  right: 55px;
+}
+.resultGroup .result_list .deleteLabel {
+  right: 57px;
+}
+.resultGroup .result_list .isShowLabel {
+  right: 18px;
+}
+.resultGroup .result_list.active {
+  background: #212b3e;
+}
+.resultGroup .result_list:hover {
+  background: rgba(33, 43, 62, 0.6);
+}
+.resultPanel .resultArea .resultGroup {
+  flex: auto;
+  height: 0;
+  overflow-y: auto;
+}
+.resultPanel .resultArea .resultSelectLabel {
+  position: absolute;
+  top: 135px;
+  right: 15px;
+  width: 260px;
+  height: 220px;
+  padding: 24px 6px 8px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  background: #fff;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  -webkit-box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.3);
+  z-index: 999999;
+  font-size: 12px;
+}
+.resultPanel .resultArea .resultSelectLabel .labelManage-menu {
+  width: 100%;
+  display: flex;
+}
+.resultPanel .resultArea .resultSelectLabel .selectLabelTip {
+  font-size: 14px;
+  text-align: center;
+}
+.resultPanel .resultArea .resultSelectLabel .selectLabel-ul {
+  height: calc(100% - 30px);
+  overflow-y: auto;
+}
+.resultPanel .resultArea .resultSelectLabel .selectLabel-ul li {
+  display: inline-block;
+  position: relative;
+  vertical-align: top;
+  -webkit-border-radius: 50px;
+  -moz-border-radius: 50px;
+  border-radius: 50px;
+  border: 1px solid #999;
+  padding: 3px 6px;
+  margin: 4px 4px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-transition: 0.3s;
+  -moz-transition: 0.3s;
+  -ms-transition: 0.3s;
+  -o-transition: 0.3s;
+  transition: 0.3s;
+  user-select: none;
+}
+.resultPanel .resultArea .resultSelectLabel .selectLabel-ul li:hover {
+  border: 1px solid #409EFF;
+  color: #409EFF;
+}
+.resultPanel .resultArea .resultSelectLabel .selectLabel-ul .class_active {
+  border: 1px solid #409EFF;
+  color: #409EFF;
+}
+.resultPanel .resultArea .resultSelectLabel .closeLabelManage {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  font-size: 18px;
+  cursor: pointer;
+}
+.resultPanel .resultArea .resultSelectLabel::after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -9px;
+  right: 96px;
+  border-right: 10px solid transparent;
+  border-left: 10px solid transparent;
+  border-bottom: 10px solid #fff;
+}
+.resultPanel .resultArea .resultSelectLabel.focus {
+  -webkit-animation: showSelectLabel 0.4s ease-out forwards;
+  -o-animation: showSelectLabel 0.4s ease-out forwards;
+  animation: showSelectLabel 0.4s ease-out forwards;
+  visibility: visible;
+}
+.resultPanel .resultArea .resultSelectLabel.blur {
+  -webkit-animation: hideSelectLabel 0.4s ease-out forwards;
+  -o-animation: hideSelectLabel 0.4s ease-out forwards;
+  animation: hideSelectLabel 0.4s ease-out forwards;
+}
+.addClass {
+  display: inline-block;
+  -webkit-border-radius: 50px;
+  -moz-border-radius: 50px;
+  border-radius: 50px;
+  border: 1px solid #999;
+  padding: 3px 6px;
+  margin: 4px 4px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-transition: 0.3s;
+  -moz-transition: 0.3s;
+  -ms-transition: 0.3s;
+  -o-transition: 0.3s;
+  transition: 0.3s;
+  user-select: none;
+}
+.addClass:hover {
+  border: 1px solid #409EFF;
+  color: #409EFF;
+}
+.editLabel-title {
+  font-size: 16px;
+  line-height: 16px;
+  margin-bottom: 10px;
+}
+.editLabel-input {
+  margin-bottom: 10px;
+}
+.editLabel-btn {
+  text-align: center;
+}
+/*
+历史操作
+*/
+.resultPanel .historyContent {
+  width: 100%;
+  height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.resultPanel .historyContent .title {
+  width: 100%;
+  color: #fff;
+  height: 36px;
+  line-height: 36px;
+  font-size: 12px;
+  text-indent: 10px;
+  -webkit-box-shadow: 0 1px 3px 0 #3c5167;
+  -moz-box-shadow: 0 1px 3px 0 #3c5167;
+  box-shadow: 0 1px 3px 0 #3c5167;
+  background: #212d3f;
+}
+.resultPanel .historyContent .historyGroup {
+  flex: auto;
+  overflow-y: auto;
+  padding: 5px 0;
+  box-sizing: border-box;
+  height: 0;
+}
+.resultPanel .historyContent .historyGroup p {
+  color: #f1f1f1;
+  line-height: 1.8;
+  font-size: 12px;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+.resultPanel .historyContent .historyGroup p:hover {
+  background: rgba(33, 43, 62, 0.6);
+}
+.resultPanel .historyContent .historyGroup p.active {
+  background: #212b3e;
+}
+.resultPanel .historyContent .historyGroup p.record {
+  color: #999999;
+}
+.button_bar {
+  text-align: center;
+}
+/*
+顶部添加标注状态样式
+*/
+.assistState {
+  position: absolute;
+  left: 10px;
+  top: 15px;
+}
