@@ -1,6 +1,8 @@
 
 import request from '../utils/request';
 import Vue from 'vue';
+
+
 let _this = new Vue();
 
 

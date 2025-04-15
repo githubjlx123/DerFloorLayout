@@ -7,10 +7,13 @@ export default class Point {
         this.color = 'red';
     }
 
-    draw1(ctx) {
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        // ctx.fillStyle = this.color;
-        ctx.fillStyle = this.visible ? '#ff0000' : 'transparent';
+    draw(ctx, scale = 1) {
+        const baseRadius = 5; // 基础半径
+        const dynamicRadius = baseRadius / Math.sqrt(scale); // 根据缩放动态调整
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, dynamicRadius, 0, Math.PI * 2);
+        ctx.fillStyle = 'red';
         ctx.fill();
     }
     clone() {

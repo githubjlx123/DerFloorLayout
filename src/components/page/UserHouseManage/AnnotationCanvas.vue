@@ -19,8 +19,8 @@
         <div class="zoom-info">缩放: {{ (scale * 100).toFixed(0) }}%</div>
         <div v-if="rooms && selectedRoom" class="room-info-overlay">
             <h4>{{ selectedRoom.name }}</h4>
-            <p>面积: {{ selectedRoom.room_area }}</p>
-            <p>周长: {{ selectedRoom.room_length }}</p>
+            <p>面积: {{  formatNumberWithCommas(this.area) }}</p>
+            <p>周长: {{ formatNumberWithCommas(this.length )}}</p>
         </div>
     </div>
 </template>
@@ -158,7 +158,9 @@ export default {
             maxScale: 5,
             loadedImages: [],
             selectedRoomId: -1,
-            autoFitApplied: false
+            autoFitApplied: false,
+            area:0,
+            length:0,
         };
     },
     mounted() {
@@ -170,6 +172,17 @@ export default {
         this.redraw();
     },
     methods: {
+        // 数字格式修改
+        formatNumberWithCommas(cellValue) {
+            // 处理可能的 null 或 undefined 值
+            if (cellValue == null) return '';
+
+            // 将数字转换为字符串并添加千位分隔符
+            return cellValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+            // 如果你需要更精确的数字处理，也可以使用 toLocaleString 方法
+            // return Number(cellValue).toLocaleString('en-US');
+        },
 // 修改 autoFit 方法中的偏移计算
         autoFit() {
             if (this.localPoints.length === 0) return;
@@ -249,7 +262,30 @@ export default {
             this.removePointAt(x, y);
         },
 
+        calculatePolygonArea(points) {
+            if (points.length < 3) return 0;
 
+            let area = 0;
+            for (let i = 0; i < points.length; i++) {
+                const j = (i + 1) % points.length;
+                area += points[i].x * points[j].y;
+                area -= points[j].x * points[i].y;
+            }
+
+            return Math.abs(area / 2);
+        },
+        calculatePolygonLength(points) {
+            if (points.length < 2) return 0;
+
+            let length = 0;
+            for (let i = 0; i < points.length; i++) {
+                const j = (i + 1) % points.length;
+                const dx = points[j].x - points[i].x;
+                const dy = points[j].y - points[i].y;
+                length += Math.sqrt(dx * dx + dy * dy);
+            }
+            return length;
+        },
         // 修改后的滚轮缩放处理
         handleWheel(e) {
             e.preventDefault();
@@ -307,7 +343,11 @@ export default {
 
         drawPoints() {
             if (this.localPoints.length === 0) return;
-
+            if(this.localPoints.length===1){
+                this.scale=10;
+            }
+            this.length=this.calculatePolygonLength(this.localPoints)
+            this.area=this.calculatePolygonArea(this.localPoints)
             // 1. 过滤出可见点
             const visiblePoints = this.localPoints.filter(p => p.visible !== false);
 
@@ -332,42 +372,77 @@ export default {
             this.ctx.lineWidth = 1 / this.scale;
             this.ctx.stroke();
 
-                // 绘制点间距离
-                this.ctx.fillStyle = '#333';
-                this.ctx.font = `${60 * this.scale}px Arial`; // 根据缩放调整字体大小
-                this.ctx.textAlign = 'center';
-
+            // 绘制点间距离
+            this.ctx.fillStyle = '#00ff00'; // 绿色
+            this.ctx.font = `${60 * this.scale}px Arial`;
+            this.ctx.textAlign = 'center'
+            if(visiblePoints.length>1){
             visiblePoints.forEach((point, index) => {
                 const nextPoint = visiblePoints[(index + 1) % visiblePoints.length];
-                    if (nextPoint.visible !== false) {
-                        // 计算中点位置
-                        const midX = (point.x + nextPoint.x) / 2;
-                        const midY = (point.y + nextPoint.y) / 2;
+                if (nextPoint.visible !== false) {
+                    // 计算中点位置
+                    const midX = (point.x + nextPoint.x) / 2;
+                    const midY = (point.y + nextPoint.y) / 2;
 
-                        // 绘制距离
-                        this.ctx.save();
-                        this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置矩阵获取物理坐标
-                        const physicalMid = this.logicalToPhysical(midX, midY);
-                        this.ctx.fillText(
-                            this.calculateDistance(point, nextPoint) ,
-                            physicalMid.x,
-                            physicalMid.y
-                        );
-                        this.ctx.restore();
+                    // 绘制距离
+                    this.ctx.save();
+                    this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置矩阵获取物理坐标
+                    const physicalMid = this.logicalToPhysical(midX, midY);
+                    if(100*this.scale>300){
+                        const size=1
+                        this.ctx.font = `${50 * size}px Arial`;
                     }
-                });
-
-
+                    else if(100*this.scale>200) {
+                        const size = 1
+                        this.ctx.font = `${20 * size}px Arial`;
+                    }
+                    else if(100*this.scale>100) {
+                        const size = 1
+                        this.ctx.font = `${10 * size}px Arial`;
+                    }
+                    else if(100*this.scale>60) {
+                        const size = 1
+                        this.ctx.font = `${4 * size}px Arial`;
+                    }
+                    else {
+                        this.ctx.font = `${80 * this.scale}px Arial`;
+                    }
+                    this.ctx.fillText(
+                        Math.round(this.calculateDistance(point, nextPoint)), // 取整
+                        physicalMid.x,
+                        physicalMid.y
+                    );
+                    this.ctx.restore();
+                }
+            });}
             // 绘制点和序号
             this.localPoints.forEach((point, index) => {
                 if (point.visible !== false) {
                     // 绘制点
                     this.ctx.beginPath();
-                    point.draw1(this.ctx);
+                    point.draw(this.ctx, this.scale);
 
                     // 绘制序号
                     this.ctx.fillStyle ='rgba(30,144,255)';
-                    this.ctx.font = `${80 * this.scale}px Arial`;
+                    if(100*this.scale>300){
+                        const size=1
+                        this.ctx.font = `${50 * size}px Arial`;
+                    }
+                    else if(100*this.scale>200) {
+                        const size = 1
+                        this.ctx.font = `${30 * size}px Arial`;
+                    }
+                    else if(100*this.scale>100) {
+                        const size = 1
+                        this.ctx.font = `${15 * size}px Arial`;
+                    }
+                    else if(100*this.scale>60) {
+                        const size = 1
+                        this.ctx.font = `${4 * size}px Arial`;
+                    }
+                    else {
+                        this.ctx.font = `${80 * this.scale}px Arial`;
+                    }
                     this.ctx.textAlign = 'left';
 
                     this.ctx.save();
@@ -378,6 +453,13 @@ export default {
                         physicalPos.x ,  // 向右偏移8像素
                         physicalPos.y-5,    // 向上偏移8像素
                     );
+                    // 显示整数坐标（X:123 Y:456）
+                    // const coordText = `X:${Math.round(point.x)} Y:${Math.round(point.y)}`;
+                    // this.ctx.fillText(
+                    //     coordText,
+                    //     physicalPos.x + 15,  // 向右偏移
+                    //     physicalPos.y + 20    // 向下偏移
+                    // );
                     this.ctx.restore();
                 }
             });
@@ -391,7 +473,7 @@ export default {
 
             // 绘制临时点
             this.ctx.beginPath();
-            this.tempPoint.draw1(this.ctx);
+            this.tempPoint.draw(this.ctx);
             this.ctx.fillStyle = 'rgba(255,0,0,0.5)';
             this.ctx.fill();
             if (this.firstPoint) {

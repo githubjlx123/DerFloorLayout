@@ -164,7 +164,9 @@ export default {
         },
         // 跳转至标注页面
         toAnnotationPage(house_id, row) {
-            localStorage.setItem('ms_project_id', row.project_id);
+            localStorage.setItem('annotation_house_id', house_id);
+            localStorage.setItem('annotation_room_id', -1);
+            
             this.$router.push({ path: '/toUserHouseAnnotationPage', query: { house_id: house_id, index: '1' } });
         }
     }
