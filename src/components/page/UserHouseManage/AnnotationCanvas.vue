@@ -6,6 +6,7 @@
             ref="canvas"
             :width="canvasWidth"
             :height="canvasHeight"
+            :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }"
             @mousemove="handleMouseMove"
             @mousedown="handleMouseDown"
             @mouseup="handleMouseUp"
@@ -69,7 +70,12 @@ export default {
         tempPoint: {
             type: Point,
             default: null
-        }
+        },
+        dragStatus: {
+            type: Boolean,
+            default: true
+        },
+
     },
     watch: {
         tempPoint: {
@@ -128,6 +134,12 @@ export default {
                 }
             },
             deep: true
+        },
+        dragStatus(newVal) {
+            if (!newVal) {
+                this.isDragging = false; // 外部关闭时立即停止拖拽
+                this.$refs.canvas.style.cursor = 'default';
+            }
         }
 
     },
@@ -210,7 +222,7 @@ export default {
 
         // 新增拖动相关方法
         handleMouseDown(e) {
-            if (e.button === 0) { // 左键按下
+            if (this.dragStatus && e.button === 0) {
                 this.isDragging = true;
                 const rect = this.$refs.canvas.getBoundingClientRect();
                 this.lastDragPos = {
@@ -220,6 +232,7 @@ export default {
                 this.$refs.canvas.style.cursor = 'grabbing';
             }
         },
+
 
         handleMouseUp() {
             this.isDragging = false;

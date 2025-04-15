@@ -1,10 +1,5 @@
 <template>
     <div class="container">
-
-
-
-
-
         <el-row :gutter="3" type="flex">
             <el-col :span="1">
                 <div class="toolFeatures">
@@ -52,6 +47,7 @@
                     :selectedImageIndex="selectedImageIndex"
                     :points="selectedRoomData"
                     :rooms="rooms"
+                    :drag-status="dragStatus"
                     :selectedRoom="selectedRoom"
                     @update:points="val => selectedRoomData = val"
                     @room-selected="handleRoomSelected"
@@ -354,8 +350,6 @@ export default {
                 startIndex: 0,
                 newPoint: { x: null, y: null }
             },
-            canvasWidth: 1500,
-            canvasHeight: 900,
             currentMode: 'insert', // 默认显示插入点功能
             images: [
                 {
@@ -376,6 +370,7 @@ export default {
             lastPoint: null ,               // 最后有效点
             firstPoint: null,
             show_lastPoint: null,
+            dragStatus:true,
         };
     },
     watch: {
@@ -703,33 +698,40 @@ export default {
                 this.tempPoint = null;
             }
         },
-        async handleSave() {
-            let arr = [];
-            let saveRes = false;
 
-            return saveRes;
-        },
-        handelToolDrag(opt) {
-            //切换时隐藏标签管理的弹框
-            [...this.$refs.labelManageRef.classList].indexOf('focus') && this.$refs.labelManageRef.classList.remove('focus');
-            this.isFocus = opt;
-            this.annotate.SetFeatures('dragOn', true);
-        },
-        handelToolRect(opt) {
-            EventBus.$on('isValidRect', () => {
-                this.isFocus = '';
-            });
-            [...this.$refs.labelManageRef.classList].indexOf('focus') && this.$refs.labelManageRef.classList.remove('focus');
-            this.isFocus = opt;
-            this.canvas.style.cursor = 'crosshair';
-            this.annotate.SetFeatures('rectOn', true);
-        },
         handleVisibilityChange(index) {
             this.$refs.drawingCanvas.redraw(); // 触发重绘
             this.$message.info(
                 `点 ${index + 1} 已${this.selectedRoomData[index].visible ? '显示' : '隐藏'}`
             );
-        }
+        },
+        handleSave() {
+            let arr = [];
+
+            return null;
+        },
+        handelToolDrag(opt) {
+            //切换时隐藏标签管理的弹框
+            this.isFocus = opt;
+            this.isFocus = '';
+            this.dragStatus=!this.dragStatus;
+            if (!this.dragStatus){
+                this.isFocus = '';}
+            else{
+                this.isFocus = opt;
+            }
+
+        },
+        handelToolRect(opt) {
+            this.isFocus = opt;
+
+        },
+        handelToolPolygon(opt){
+            this.isFocus = opt;
+
+        },
+
+
     }
 };
 </script>
@@ -876,7 +878,10 @@ el-card {
         margin-bottom: 0;
     }
 }
-
+.toolFeatures {
+    padding-left: 0;
+    margin-left: 0;
+}
 .el-card {
     margin-bottom: 20px;
 
@@ -884,7 +889,10 @@ el-card {
         margin-bottom: 0;
     }
 }
-
+.container {
+    padding-left: 0;
+    margin-left: 0;
+}
 /* 添加过渡动画 */
 .el-switch {
     transition: all 0.3s ease;
