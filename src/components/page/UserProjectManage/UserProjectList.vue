@@ -169,6 +169,17 @@
             this.getData(1);
         },
         methods: {
+            // 数字格式修改
+            formatNumberWithCommas(row, column, cellValue) {
+                // 处理可能的 null 或 undefined 值
+                if (cellValue == null) return '';
+                
+                // 将数字转换为字符串并添加千位分隔符
+                return cellValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                
+                // 如果你需要更精确的数字处理，也可以使用 toLocaleString 方法
+                // return Number(cellValue).toLocaleString('en-US');
+            },
             // 获取项目列表
             getData(page) {
                 let params = {
@@ -211,7 +222,7 @@
             //删除项目
             handleDelete(index, row) {
                 // 二次确认删除
-                this.$confirm('确定要删除该项目吗？', '提示', {
+                this.$confirm('删除后无法恢复，确定要删除该项目吗？', '提示', {
                     type: 'warning'
                 }).then(() => {
                     let params = {
@@ -233,7 +244,7 @@
                         this.$message.error('删除项目信息失败！');
                     });
                 }).catch(() => {
-                    this.$message.info('取消删除!');
+                    // this.$message.info('取消删除!');
                 });
             },
             //编辑项目

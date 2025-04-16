@@ -42,36 +42,43 @@
                 <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
             </div>
 
-            <el-table :data="tableData" border class="table" ref="multipleTable" header-cell-class-name="table-header" :row-class-name="setRowClassName">
+            <el-table :data="tableData" border class="table" ref="multipleTable" header-cell-class-name="table-header" :row-class-name="setRowClassName" :row-style="{ height: '100px' }">
                 <el-table-column label="序号" width="55" align="center">
                     <template slot-scope="scope">
                         <div>{{(pageIndex - 1)*pageSize + scope.$index + 1}}</div>
                     </template>
                 </el-table-column>
 
-                <el-table-column  label="铺装名称" align="center" width="220" show-overflow-tooltip>
+                <el-table-column  label="铺装名称" align="center" width="180" show-overflow-tooltip>
                     <template slot-scope="scope">
                       <div>{{ scope.row.pave_name}}({{ scope.row.pave_id}})</div>
                     </template>
                 </el-table-column>
 
-                <el-table-column label="所属项目名称" align="center" width="180" show-overflow-tooltip>
+                <el-table-column label="所属项目" align="center" width="160" show-overflow-tooltip>
                     <template slot-scope="scope">
                         <div>{{ scope.row.project_name}}({{ scope.row.project_id}})</div>
                     </template>
                 </el-table-column>
+
+                <el-table-column label="所属项目户型" align="center" width="180" show-overflow-tooltip>
+                    <template slot-scope="scope">
+                        <div>{{ scope.row.house_name}}({{ scope.row.house_id}})</div>
+                    </template>
+                </el-table-column>
+
                 <el-table-column prop="create_time" label="模拟时间" width="180" align="center"></el-table-column>
-                <el-table-column prop="train_cost" label="花费时间(s)" align="center"></el-table-column>
+                <!-- <el-table-column prop="train_cost" label="花费时间(s)" align="center"></el-table-column> -->
 
                 <el-table-column prop="need_area" label="铺装面积(平米)" align="center">
                     <template slot-scope="scope">
-                        <div>{{ formatNumberWithCommas(scope.row.need_area / 1000000)}}</div>
+                        <div>{{ formatNumberWithCommas((scope.row.need_area / 1000000).toFixed(2))}}</div>
                     </template>
                 </el-table-column>
 
 				<el-table-column prop="floor_area" label="地板面积(平米)" align="center">
                     <template slot-scope="scope">
-                        <div>{{ formatNumberWithCommas(scope.row.floor_area / 1000000)}}</div>
+                        <div>{{ formatNumberWithCommas((scope.row.floor_area / 1000000).toFixed(2))}}</div>
                     </template>
                 </el-table-column>
 				<el-table-column prop="count" label="地板数量(片)" align="center">
@@ -95,18 +102,18 @@
                     </div>
                 </el-table-column>
 
-                <el-table-column prop="accuracy" label="地板损耗率" align="center"></el-table-column>
+                <el-table-column prop="pave_loss" label="损耗率" align="center"></el-table-column>
 
                 <el-table-column label="详细" align="center">
                     <el-button slot-scope="scope" type="text" icon="el-icon-search"
-                               @click="checkModelDetail(scope.$index, scope.row.pave_id)">查看详细
+                               @click="checkPaveDetail(scope.$index, scope.row.pave_id)">查看详细
                     </el-button>
                 </el-table-column>
 
                 <el-table-column label="操作" width="160px" align="center">
                     <template slot-scope="scope">
                         <el-button type="text" icon="el-icon-document" @click="goToTrainReport(scope.row.pave_id)"
-                        :disabled="scope.row.accuracy === 0"
+                        :disabled="scope.row.pave_loss === 0"
                         >模拟报告
                         </el-button>
              <!--           <el-button type="text" icon="el-icon-edit" @click="handleTest(scope.$index, scope.row)"
@@ -154,7 +161,7 @@
             return {
                 user_id: localStorage.getItem('ms_user_id'),
                 pageIndex: 1,
-                pageSize: 12,
+                pageSize: 6,
                 pageTotal: 0,
                 project_id: "全部项目",
                 house_id: "所有户型",
@@ -276,9 +283,9 @@
                     });
             },
             //查看详情
-            checkModelDetail(index, pave_id) {
+            checkPaveDetail(index, pave_id) {
                 localStorage.setItem('ms_pave_id', pave_id);
-                this.$router.push('/modelDetailPage');
+                this.$router.push('/paveDetailPage');
             },
             //删除铺装
             deleteModel(pave_id) {

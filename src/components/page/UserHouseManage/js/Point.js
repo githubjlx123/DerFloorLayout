@@ -5,6 +5,9 @@ export default class Point {
         this.visible = true;
         this.radius = 20;
         this.color = 'red';
+        this.type='line';  //circle
+        this.category='wall';
+
     }
 
     draw(ctx, scale = 1) {

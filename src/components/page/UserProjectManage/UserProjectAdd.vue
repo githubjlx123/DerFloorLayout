@@ -18,7 +18,7 @@
                     <el-form-item label="项目类型" prop="mission">
                         <el-radio-group v-model="projectForm.mission" @change="handleMission">
                             <el-radio :label="1" value="1">常规铺装</el-radio>
-                           <el-radio :label="2" value="2">整体铺装</el-radio>
+                           <el-radio :label="2" value="2" :disabled="true">扩展任务</el-radio>
                         </el-radio-group>
                     </el-form-item>
                     <el-form-item label="项目描述" prop="detail">

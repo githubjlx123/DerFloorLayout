@@ -1,8 +1,6 @@
 
 import request from '../utils/request';
 import Vue from 'vue';
-
-
 let _this = new Vue();
 
 
@@ -64,6 +62,14 @@ export const getThumbnailByPath = query => {
     });
 }
 
+//用户通过图片路径获得图片内容
+export const getImageByPath = query =>{
+    return request({
+        url: `${_this.$serverUrl}getImageByPath`,
+        method: 'post',
+        data: query
+    });
+}
 
 
 //通过户型名称模糊查询数据标注页面列表
@@ -295,14 +301,6 @@ export const uploadOneClassifyImage = query =>{
 export const uploadOneDetectImage = query =>{
     return request({
         url: `${_this.$serverUrl}uploadOneDetectImage`,
-        method: 'post',
-        data: query
-    });
-}
-//用户通过图片路径获得图片内容
-export const getImageByPath = query =>{
-    return request({
-        url: `${_this.$serverUrl}getImageByPath`,
         method: 'post',
         data: query
     });

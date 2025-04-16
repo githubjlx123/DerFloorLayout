@@ -205,8 +205,8 @@
                             <el-select v-model="current_start_dir" placeholder="请选择" class="select-length">
                                 <el-option :key="1" label="右上(↗)" value="1"></el-option>
                                 <el-option :key="2" label="左上(↖)" value="2"></el-option>
-                                <el-option :key="3" label="左下（↙)" value="3"></el-option>
-                                <el-option :key="4" label="右下（↘)" value="4"></el-option>
+                                <el-option :key="3" label="左下(↙)" value="3"></el-option>
+                                <el-option :key="4" label="右下(↘)" value="4"></el-option>
                             </el-select>
                         </el-form-item>
 
@@ -381,9 +381,9 @@
                                     <el-descriptions-item label="最大尺寸">
                                         {{ room.data_max_x }}mm × {{ room.data_max_y }}mm
                                     </el-descriptions-item>
-                                    <el-descriptions-item label="是否标签区域">
+                                    <!-- <el-descriptions-item label="是否标签区域">
                                         {{ room.is_label ? '是' : '否' }}
-                                    </el-descriptions-item>
+                                    </el-descriptions-item> -->
                                 </el-descriptions>
                             </el-collapse-item>
                         </el-collapse>
@@ -403,6 +403,10 @@
                             <el-descriptions-item label="总房间面积">
                                 {{ formatNumberWithCommas(total_room_area) }} m㎡
                             </el-descriptions-item>
+                            
+                            <el-descriptions-item label="踢脚线总长度">
+                                {{ formatNumberWithCommas(total_room_length) }} mm
+                            </el-descriptions-item>
 
                             <el-descriptions-item label="整铺地板数量">
                                 {{ formatNumberWithCommas(fully_floor_num) }} 块
@@ -420,7 +424,7 @@
                                 {{ formatNumberWithCommas(total_floor_area) }} m㎡
                             </el-descriptions-item>
                             <el-descriptions-item label="平均损耗率">
-                                {{ total_loss.toFixed(2) }}%
+                                {{ total_loss.toFixed(2) }} %
                             </el-descriptions-item>
                         </el-descriptions>
                     </el-card>
@@ -536,7 +540,7 @@ import { IncreasingFn, MaxNumber } from '@utils/common.js';
 // import { optimize } from 'webpack';
 
 export default {
-    name: 'trainClassify',
+    name: 'paveSimulate',
     components: { mSelect, mInput, mInputGroup },
     data() {
         return {
@@ -577,8 +581,12 @@ export default {
             total_floor_area: 0,
             fully_floor_num: 0,
             partly_floor_num: 0,
+
+            room_pave_data: [],
+
             total_loss: 0,
             paveResultRooms:[],
+
             currentResultRoomPage: 1, // 当前结果房间页码
             resultLoading: false
         };
@@ -599,9 +607,10 @@ export default {
         'floorPaveForm.house_id'(newVal) {
             if (newVal) {
                 this.getRoomByHouseId(newVal)
-            } else {
-                this.houseRooms = []
             }
+            //  else {
+            //     this.houseRooms = []
+            // }
         },
         'floorPaveForm.room_id'(newVal) {
             if (newVal) {
@@ -712,10 +721,10 @@ export default {
         // 通过户型ID查询房间信息
         getRoomByHouseId(houseId){
 
-            if (!houseId) {
-                this.houseRooms = [];
-                return;
-            }
+            // if (!houseId) {
+            //     this.houseRooms = [];
+            //     return;
+            // }
             
             this.roomLoading = true;
             
@@ -885,14 +894,18 @@ export default {
                     let { data, status } = res;
                     if (status == '200') {
 
-                        this.total_room_area= data.total_room_area,
+                        this.total_room_area = data.total_room_area,
+                        this.total_room_length = data.total_room_length,
+
                         this.fully_floor_num = data.fully_floor_num,
                         this.partly_floor_num = data.partly_floor_num,                        
                         this.total_floor_num = data.total_floor_num,
                         this.total_floor_area = data.total_floor_area,
+
                         this.total_loss =  data.total_loss,
                         this.paveResultRooms = data.pave_room_list
-                        
+                        this.room_pave_data = data.pave_room_list
+
                         this.active = 3;
 
                         this.$message.success("铺装模拟完成！");
@@ -917,13 +930,17 @@ export default {
                 user_id: this.user_id,
                 project_id: this.floorPaveForm.project_id,
                 house_id: this.floorPaveForm.house_id,
+
                 total_room_area: this.total_room_area,
-                fully_floor_num: this.full_floor_num,
+                total_room_length: this.total_room_length,
+
+                fully_floor_num: this.fully_floor_num,
                 partly_floor_num: this.partly_floor_num,
                 total_floor_num: this.total_floor_num,
                 total_floor_area: this.total_floor_area,
                 total_loss: this.total_loss,
-                paveResultRooms:[],
+
+                room_pave_data: this.room_pave_data,
 
                 // 铺装配置
                 pave_config: {
@@ -950,13 +967,9 @@ export default {
                     room_data: room.room_data,
                     data_max_x: room.data_max_x,
                     data_max_y: room.data_max_y,
-                    room_area: room.room_area
-                })),
+                    room_area: room.room_area,
 
-                // 所有铺装模拟结果
-                rooms_result: this.paveResultRooms.map(room => ({
-                    
-                }))
+                })),
             }
         },
         saveSimulateResult(){
@@ -994,13 +1007,6 @@ export default {
                     .finally(() => {
                         loading.close()
                     });
-
-
-
-
-
-                // 这里调用保存API
-                this.$message.success('保存成功！');
             }).catch(() => {
                 this.$message.info('已取消保存');         
             });

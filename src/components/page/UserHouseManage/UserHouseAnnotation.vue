@@ -91,57 +91,6 @@
                         <!-- 使用el-tabs来替代原来的切换按钮 -->
                         <el-tabs v-model="currentMode" type="border-card" @tab-change="handleTabChange"
                                  class="custom-tabs"  >
-                            <!-- 插入点功能 -->
-                            <el-tab-pane label="坐标模式" name="insert">
-                                <el-form
-                                    :model="insertData"
-                                    label-width="90px"
-                                class="form-align"
-                                >
-                                <!-- 前置索引输入 -->
-                                <el-form-item label="前置索引">
-                                    <el-input-number
-                                        v-model.number="insertData.startIndex"
-                                        :min="0"
-                                        :max="selectedRoomData.length || 1"
-                                        :disabled="selectedRoomData.length === 0"
-                                        controls-position="right"
-                                        class="form-input"
-                                    />
-                                </el-form-item>
-
-                                <!-- 坐标输入组 -->
-                                <div class="coordinate-group">
-                                    <el-form-item label="X坐标">
-                                        <el-input-number
-                                            v-model.number="insertData.newPoint.x"
-                                            :step="100"
-                                            class="form-input"
-                                        />
-                                    </el-form-item>
-                                </div>
-                                    <div class="coordinate-group">
-                                    <el-form-item label="Y坐标">
-                                        <el-input-number
-                                            v-model.number="insertData.newPoint.y"
-                                            :step="100"
-                                            class="form-input"
-                                        />
-                                    </el-form-item>
-                                    </div>
-
-                                <!-- 操作按钮 -->
-                                <el-form-item class="form-action">
-                                    <el-button
-                                        type="success"
-                                        @click="insertPointAfter"
-                                        icon="el-icon-insert"
-                                        size="medium"
-                                    >插入点</el-button>
-                                </el-form-item>
-                                </el-form>
-                            </el-tab-pane>
-
                             <!-- 移动控制功能 -->
                             <el-tab-pane label="绘制模式" name="move">
                                 <el-form :model="moveDistance">
@@ -187,69 +136,119 @@
 
                                     <el-form-item class="direction-buttons">
                                         <div class="direction" >
-                                        <div class="direction-container">
-                                            <!-- 上下左右方向键 -->
-                                            <div class="direction-keyboard">
-                                                <div class="direction-row">
-                                                    <el-button
-                                                        type="primary"
-                                                        icon="el-icon-top"
-                                                        @click="movePoint('up')"
-                                                    >上
-                                                    </el-button>
-                                                </div>
-                                                <div class="direction-row">
-                                                    <el-button
-                                                        type="primary"
-                                                        icon="el-icon-back"
-                                                        @click="movePoint('left')"
-                                                    >左
-                                                    </el-button>
-                                                    <el-button
-                                                        type="primary"
-                                                        icon="el-icon-right"
-                                                        @click="movePoint('right')"
-                                                    >右
-                                                    </el-button>
-                                                </div>
-                                                <div class="direction-row">
-                                                    <el-button
-                                                        type="primary"
-                                                        icon="el-icon-bottom"
-                                                        @click="movePoint('down')"
-                                                    >下
-                                                    </el-button>
+                                            <div class="direction-container">
+                                                <!-- 上下左右方向键 -->
+                                                <div class="direction-keyboard">
+                                                    <div class="direction-row">
+                                                        <el-button
+                                                            type="primary"
+                                                            icon="el-icon-top"
+                                                            @click="movePoint('up')"
+                                                        >上
+                                                        </el-button>
+                                                    </div>
+                                                    <div class="direction-row">
+                                                        <el-button
+                                                            type="primary"
+                                                            icon="el-icon-back"
+                                                            @click="movePoint('left')"
+                                                        >左
+                                                        </el-button>
+                                                        <el-button
+                                                            type="primary"
+                                                            icon="el-icon-right"
+                                                            @click="movePoint('right')"
+                                                        >右
+                                                        </el-button>
+                                                    </div>
+                                                    <div class="direction-row">
+                                                        <el-button
+                                                            type="primary"
+                                                            icon="el-icon-bottom"
+                                                            @click="movePoint('down')"
+                                                        >下
+                                                        </el-button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
                                             <!-- 确认和取消按钮 -->
 
 
-                                                <el-button
-                                                    v-if="!autoAddMode"
-                                                    type="success"
-                                                    :icon="isOverlapping ? 'el-icon-warning' : 'el-icon-check'"
-                                                    :disabled="isOverlapping || !tempPoint"
-                                                    @click="handleConfirmAction"
-                                                    class="add-btn"
-                                                >
-                                                    {{ getConfirmButtonText }}
-                                                </el-button>
+                                            <el-button
+                                                v-if="!autoAddMode"
+                                                type="success"
+                                                :icon="isOverlapping ? 'el-icon-warning' : 'el-icon-check'"
+                                                :disabled="isOverlapping || !tempPoint"
+                                                @click="handleConfirmAction"
+                                                class="add-btn"
+                                            >
+                                                {{ getConfirmButtonText }}
+                                            </el-button>
 
-                                                <el-button
-                                                    v-if="!autoAddMode"
-                                                    type="danger"
-                                                    icon="el-icon-close"
-                                                    :disabled="!tempPoint"
-                                                    @click="quitTempPoint"
-                                                    class="cancel-btn"
-                                                >
-                                                    取消添加
-                                                </el-button>
-                                            </div>
+                                            <el-button
+                                                v-if="!autoAddMode"
+                                                type="danger"
+                                                icon="el-icon-close"
+                                                :disabled="!tempPoint"
+                                                @click="quitTempPoint"
+                                                class="cancel-btn"
+                                            >
+                                                取消添加
+                                            </el-button>
+                                        </div>
 
                                     </el-form-item>
 
+                                </el-form>
+                            </el-tab-pane>
+                            <!-- 插入点功能 -->
+                            <el-tab-pane label="坐标模式" name="insert">
+                                <el-form
+                                    :model="insertData"
+                                    label-width="90px"
+                                    class="form-align"
+                                >
+                                    <!-- 前置索引输入 -->
+                                    <el-form-item label="前置索引">
+                                        <el-input-number
+                                            v-model.number="insertData.startIndex"
+                                            :min="0"
+                                            :max="selectedRoomData.length || 1"
+                                            :disabled="selectedRoomData.length === 0"
+                                            controls-position="right"
+                                            class="form-input"
+                                        />
+                                    </el-form-item>
+
+                                    <!-- 坐标输入组 -->
+                                    <div class="coordinate-group">
+                                        <el-form-item label="X坐标">
+                                            <el-input-number
+                                                v-model.number="insertData.newPoint.x"
+                                                :step="100"
+                                                class="form-input"
+                                            />
+                                        </el-form-item>
+                                    </div>
+                                    <div class="coordinate-group">
+                                        <el-form-item label="Y坐标">
+                                            <el-input-number
+                                                v-model.number="insertData.newPoint.y"
+                                                :step="100"
+                                                class="form-input"
+                                            />
+                                        </el-form-item>
+                                    </div>
+
+                                    <!-- 操作按钮 -->
+                                    <el-form-item class="form-action">
+                                        <el-button
+                                            type="success"
+                                            @click="insertPointAfter"
+                                            icon="el-icon-insert"
+                                            size="medium"
+                                        >插入点</el-button>
+                                    </el-form-item>
                                 </el-form>
                             </el-tab-pane>
                         </el-tabs>
@@ -344,7 +343,7 @@ export default {
                 startIndex: 0,
                 newPoint: { x: null, y: null }
             },
-            currentMode: 'insert', // 默认显示插入点功能
+            currentMode: 'move', // 默认显示插入点功能
             images: [
                 {
                     name: '默认图片',
@@ -402,13 +401,14 @@ export default {
                 this.calculateDistance(point, this.tempPoint) < 5
             );
 
-            // 线重叠检测（3像素容差）
-            const lineConflict = this.selectedRoomData.some((point, index) => {
-                const nextPoint = this.selectedRoomData[(index + 1) % this.selectedRoomData.length];
-                return this.pointToLineDistance(this.tempPoint, point, nextPoint) < 3;
-            });
+            // // 线重叠检测（3像素容差）
+            // const lineConflict = this.selectedRoomData.some((point, index) => {
+            //     const nextPoint = this.selectedRoomData[(index + 1) % this.selectedRoomData.length];
+            //     return this.pointToLineDistance(this.tempPoint, point, nextPoint) < 3;
+            // });
+            //|| lineConflict;
 
-            return pointConflict || lineConflict;
+            return pointConflict;
         }
     },
     methods: {
@@ -547,28 +547,26 @@ export default {
             );
 
             // 线重叠检测（3像素容差）
-            const lineConflict = this.selectedRoomData.some((point, index) => {
-                const nextPoint = this.selectedRoomData[(index + 1) % this.selectedRoomData.length];
-                return this.pointToLineDistance(tempPoint, point, nextPoint) < 3;
-            });
+            // const lineConflict = this.selectedRoomData.some((point, index) => {
+            //     const nextPoint = this.selectedRoomData[(index + 1) % this.selectedRoomData.length];
+            //     return this.pointToLineDistance(tempPoint, point, nextPoint) < 3;
+            // });|| lineConflict;
 
-            return pointConflict || lineConflict;
+            return pointConflict;
         },
         movePoint(direction) {
-            if (!this.selectedRoomData.length && !this.tempPoint) {
-                this.$message.warning('请先添加起始点');
-                return;
-            }
 
             // 获取基准点（自动模式下始终使用最后一个正式点）
-            const basePoint = this.autoAddMode ?
+            let basePoint = this.autoAddMode ?
                 this.selectedRoomData[this.selectedRoomData.length - 1] :
                 (this.tempPoint || this.selectedRoomData[this.selectedRoomData.length - 1]);
+
             // 确保basePoint已定义
-            if (!basePoint) {
-                this.$message.warning('无法获取基准点');
-                return;
+            if (!basePoint&& this.autoAddMode) {
+                basePoint = new Point(0,0);
             }
+
+
             // 计算新坐标
             const newPoint = new Point(basePoint.x, basePoint.y);
 
@@ -828,6 +826,9 @@ export default {
 </script>
 
 <style scoped>
+
+
+
 /* 整体布局 */
 
 /* 输入框统一宽度 */

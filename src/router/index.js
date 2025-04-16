@@ -235,7 +235,7 @@ export default new Router({
                     path: '/paveSimulatePage',
                     name: 'paveSimulatePage',
                     component: () => import(/* webpackChunkName: "permission" */ '../components/page/UserPaveManage/UserPaveSimulate.vue'),
-                    meta: { title: '训练网络', role: 'user' }
+                    meta: { title: '铺装模拟', role: 'user' }
                 },
                     // 用户_铺装管理_查看铺装
                 {

@@ -23,6 +23,7 @@
                     <el-form-item label="用户名" prop="username">
                         <el-input v-model="userEditForm.username"></el-input>
                     </el-form-item>
+
                     <el-form-item label="联系方式" prop="phone">
                         <el-input v-model="userEditForm.phone"></el-input>
                     </el-form-item>
@@ -30,6 +31,7 @@
                     <el-form-item label="用户简介" prop="detail">
                         <el-input type="textarea" rows="5" v-model="userEditForm.detail"></el-input>
                     </el-form-item>
+
                     <el-form-item label="用户头像">
                         <el-upload
                                 class="avatar-uploader"
@@ -42,6 +44,7 @@
                             <i v-else class="el-icon-plus avatar-uploader-icon"></i>
                         </el-upload>
                     </el-form-item>
+                    
                     <el-form-item label="用户状态">
                         <el-radio-group v-model="userEditForm.status">
                             <el-radio :label="0" value="0" :disabled="true">正常</el-radio>
