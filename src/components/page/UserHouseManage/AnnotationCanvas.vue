@@ -4,8 +4,8 @@
 
         <canvas
             ref="canvas"
-            :width="canvasWidth"
-            :height="canvasHeight"
+            :width="this.canvasWidth"
+            :height="this.canvasHeight"
             :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }"
             @mousemove="handleMouseMove"
             @mousedown="handleMouseDown"
@@ -42,14 +42,14 @@ export default {
             type: Object,
             default: null
         },
-        canvasWidth: {
-            type: Number,
-            default: 1100
-        },
-        canvasHeight: {
-            type: Number,
-            default: 900
-        },
+        // canvasWidth: {
+        //     type: Number,
+        //     default: 1100
+        // },
+        // canvasHeight: {
+        //     type: Number,
+        //     default: 900
+        // },
         images: {
             type: Array,
             default: () => []
@@ -161,17 +161,33 @@ export default {
             autoFitApplied: false,
             area:0,
             length:0,
+            canvasWidth: 1100,
+            canvasHeight: 900,
         };
     },
     mounted() {
         const canvas = this.$refs.canvas;
         this.ctx = canvas.getContext('2d');
+
+        this.updateCanvasSize();
+        window.addEventListener('resize', this.updateCanvasSize);
         this.scale = 1;
         this.offset = {x: 0, y: 0};
         canvas.addEventListener('wheel', this.handleWheel, {passive: false});
         this.redraw();
     },
+    beforeDestroy() {
+        window.removeEventListener('resize', this.updateCanvasSize);
+    },
     methods: {
+        updateCanvasSize() {
+            const containerWidth = window.innerWidth * 0.58; // 70vw
+            const containerHeight = window.innerHeight* 0.82;
+
+            this.canvasWidth = containerWidth;
+            this.canvasHeight = containerHeight;
+            this.redraw();
+        },
         // 数字格式修改
         formatNumberWithCommas(cellValue) {
             // 处理可能的 null 或 undefined 值
@@ -526,13 +542,16 @@ export default {
 </script>
 
 <style scoped>
+
 .canvas-container {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
+    position: static;
+    top: 0;
+    left: 4vw;
+    width: 62vw; /* 或 calc(100% * 17 / 24) */
+    height: 100vh;
+    z-index: 1;
 }
+
 
 canvas {
     border: 2px solid #ccc;

@@ -1,7 +1,8 @@
 <template>
     <div class="container">
-        <el-row :gutter="3" type="flex">
-            <el-col :span="1">
+
+
+        <div class="sidebar-left">
                 <div class="toolFeatures">
                     <div class="assistFeatures">
                         <p class="saveJson" title="保存当前标注" @click="handleSave"></p>
@@ -35,9 +36,9 @@
 
                     </div>
                 </div>
-            </el-col>
+        </div>
             <!-- 左侧 Canvas区域 -->
-            <el-col :span="17" class="canvas-col">
+        <div class="main-content">
 
                 <AnnotationCanvas
                     ref="drawingCanvas"
@@ -53,9 +54,9 @@
                     @update:points="val => selectedRoomData = val"
                     @room-selected="handleRoomSelected"
                 />
-            </el-col>
+        </div>
 
-            <el-col :span="6">
+        <div class="sidebar-right">
                 <div class="commentResult">
                     <el-card class="room-selection">
                         <template #header>
@@ -87,7 +88,7 @@
 
                     </el-card>
 
-                    <div class="commentResult">
+
                         <!-- 使用el-tabs来替代原来的切换按钮 -->
                         <el-tabs v-model="currentMode" type="border-card" @tab-change="handleTabChange"
                                  class="custom-tabs"  >
@@ -252,12 +253,12 @@
                                 </el-form>
                             </el-tab-pane>
                         </el-tabs>
-                    </div>
+
                     <el-card class="resultArea">
                         <el-table
                             :data="selectedRoomData"
                             border
-                            height="400px"
+                            height="300px"
                             style="width: 100%"
                         >
                             <el-table-column label="序号" align="center">
@@ -311,10 +312,10 @@
 
 
                 </div>
-            </el-col>
+        </div>
             <!-- 右侧 标注结果集 -->
 
-        </el-row>
+
     </div>
 </template>
 
@@ -827,10 +828,38 @@ export default {
 
 <style scoped>
 
+.container{
+    display: flex;
+    height: 100vh; /* 占满整个视口高度 */
+}
 
+.sidebar-left {
+    width: 4vw; /* 或固定宽度如 240px */
+    background-color: #f0f0f0;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+.sidebar-right {
+    position: absolute; /* 或 fixed，看你是否希望它随页面滚动 */
+    right: 0;            /* 紧贴右边 */
 
-/* 整体布局 */
+    width: 450px;
+    height: 100vh;       /* 全屏高度 */
+    //width: 20vw;
+}
+/* 新增：布局容器 */
+.commentResult {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
 
+    /* 首个子元素顶部对齐 */
+    & > :first-child {
+        margin-top: 0;
+        padding-top: 0;
+    }
+}
 /* 输入框统一宽度 */
 .form-input {
     width: 220px !important;  /* 固定宽度 */
@@ -899,16 +928,30 @@ export default {
     margin: 2px;
 }
 
-el-card {
-    margin-bottom: 20px;
+.el-card {
+    margin-bottom: 0 !important;
 
-    &:last-child {
-        margin-bottom: 0;
+    .el-card__header {
+        padding: 12px 20px;
+    }
+
+    .el-card__body {
+        padding: 15px;
     }
 }
+/* 卡片顶部处理 */
+.el-card {
+    &__header {
+        padding: 12px 20px !important;
+        border-bottom: none !important;
+    }
 
+    &:first-child {
+        margin-top: 0;
+    }
+}
 .resultArea {
-    max-height: 500px;
+    max-height: 290px;
 
 }
 /* 表头居中 */
