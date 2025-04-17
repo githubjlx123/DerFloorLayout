@@ -140,12 +140,15 @@ export default {
         },
     },
     watch: {
-        tempPoint: {
-            validator(value) {
-                return value === null || value instanceof Point;
-            },
-            default: null
+       tempPoint(newVal, oldVal) {
+            if (newVal && newVal.someMethod) {
+                // 调用函数之前确保它是有效的
+                newVal.someMethod.apply(newVal, args);
+            } else {
+                console.warn('someMethod is not defined');
+            }
         },
+
         lastPoint: {
             handler(newVal) {
                 // 这里添加处理逻辑（如有需要）
@@ -153,11 +156,13 @@ export default {
             deep: true,  // 若需要深度监听
             immediate: true  // 若需要立即执行
         },
-        firstPoint: {
-            validator(value) {
-                return value === null || value instanceof Point;
-            },
-            default: null
+        firstPoint(newVal, oldVal) {
+            if (newVal && newVal.someMethod) {
+                // 调用函数之前确保它是有效的
+                newVal.someMethod.apply(newVal, args);
+            } else {
+                console.warn('someMethod is not defined');
+            }
         },
         images: {
             handler(newImages) {
