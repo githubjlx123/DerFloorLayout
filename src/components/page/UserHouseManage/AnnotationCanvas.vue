@@ -16,17 +16,84 @@
         <div class="coordinate-display">
             坐标：({{ coordinate.x }}, {{ coordinate.y }})
         </div>
-        <div class="zoom-info">缩放: {{ (scale * 100).toFixed(0) }}%</div>
-        <div v-if="rooms && selectedRoom" class="room-info-overlay">
-            <h4>{{ selectedRoom.name }}</h4>
-            <p>面积: {{  formatNumberWithCommas(this.area) }}</p>
-            <p>周长: {{ formatNumberWithCommas(this.length )}}</p>
+<!--        <div class="zoom-info">缩放: {{ (scale * 100).toFixed(0) }}%</div>-->
+<!--        <div v-if="rooms && selectedRoom" class="room-info-overlay">-->
+<!--            <h4>{{ selectedRoom.name }}</h4>-->
+<!--            <p>面积: {{  formatNumberWithCommas(this.area) }}</p>-->
+<!--            <p>周长: {{ formatNumberWithCommas(this.length )}}</p>-->
+<!--        </div>-->
+        <el-dialog
+            title="输入距离"
+            :visible.sync="showDistanceDialog"
+            width="300px"
+            @close="cancelDistanceInput"
+        >
+            <div>
+                向 <strong>{{ directionMap[currentDirection] || currentDirection }}</strong>，
+                请输入该方向上的距离：
+                <el-input v-model="inputDistance" type="number" placeholder="输入距离"></el-input>
+            </div>
+
+
+            <template #footer>
+                <el-button @click="cancelDistanceInput">取消</el-button>
+                <el-button type="primary" @click="confirmDistanceInput">确定</el-button>
+            </template>
+        </el-dialog>
+        <div
+            v-if="showContextMenu"
+            :style="contextMenuStyle"
+            class="context-menu"
+            @mouseleave="closeContextMenu"
+        >
+            <el-menu
+                @select="handleMenuSelect"
+                class="custom-menu"
+            >
+                <el-menu-item index="edit">
+                    <i class="el-icon-edit"></i>
+                    <span>编辑坐标</span>
+                </el-menu-item>
+                <el-menu-item index="delete">
+                    <i class="el-icon-delete"></i>
+                    <span>删除点</span>
+                </el-menu-item>
+                <el-menu-item index="setStart">
+                    <i class="el-icon-place"></i>
+                    <span>设为铺装起点</span>
+                </el-menu-item>
+            </el-menu>
         </div>
+        <el-dialog
+            title="编辑坐标"
+            :visible.sync="showEditDialog"
+            width="30%"
+        >
+            <el-form label-width="80px">
+                <el-form-item label="X坐标">
+                    <el-input-number
+                        v-model="editingPoint.x"
+                        :step="100"
+                    />
+                </el-form-item>
+                <el-form-item label="Y坐标">
+                    <el-input-number
+                        v-model="editingPoint.y"
+                        :step="100"
+                    />
+                </el-form-item>
+            </el-form>
+            <span slot="footer">
+        <el-button @click="showEditDialog = false">取消</el-button>
+        <el-button type="primary" @click="confirmEdit">确定</el-button>
+      </span>
+        </el-dialog>
     </div>
 </template>
 
 <script>
 import Point from '@/components/page/UserHouseManage/js/Point.js';
+
 export default {
     name:'AnnotationCanvas',
     props: {
@@ -42,14 +109,6 @@ export default {
             type: Object,
             default: null
         },
-        // canvasWidth: {
-        //     type: Number,
-        //     default: 1100
-        // },
-        // canvasHeight: {
-        //     type: Number,
-        //     default: 900
-        // },
         images: {
             type: Array,
             default: () => []
@@ -75,7 +134,10 @@ export default {
             type: Boolean,
             default: true
         },
-
+        drawStatus: {
+            type: Boolean,
+            default: false
+        },
     },
     watch: {
         tempPoint: {
@@ -85,10 +147,11 @@ export default {
             default: null
         },
         lastPoint: {
-            validator(value) {
-                return value === null || value instanceof Point;
+            handler(newVal) {
+                // 这里添加处理逻辑（如有需要）
             },
-            default: null
+            deep: true,  // 若需要深度监听
+            immediate: true  // 若需要立即执行
         },
         firstPoint: {
             validator(value) {
@@ -140,70 +203,110 @@ export default {
                 this.isDragging = false; // 外部关闭时立即停止拖拽
                 this.$refs.canvas.style.cursor = 'default';
             }
+        },
+        drawStatus(newVal) {
+            if (!newVal) {
+                this.isDragging = false; // 外部关闭时立即停止拖拽
+                this.$refs.canvas.style.cursor = 'default';
+            }
         }
-
     },
-
     data() {
         return {
-            isDragging: false,
-            lastDragPos: { x: 0, y: 0 },
-            ctx: null,
-            localPoints: [],
-            coordinate: {x: 0, y: 0},
-            currentPoint: {x: '', y: ''},
-            scale: 1,
-            offset: {x: 0, y: 0},
-            minScale: 0.01,
-            maxScale: 5,
-            loadedImages: [],
-            selectedRoomId: -1,
-            autoFitApplied: false,
-            area:0,
-            length:0,
-            canvasWidth: 1100,
-            canvasHeight: 900,
+            isDragging: false, // 是否正在拖动画布
+            lastDragPos: { x: 0, y: 0 }, // 上一次拖动的鼠标位置
+            ctx: null, // Canvas 的绘图上下文
+            localPoints: [], // 当前绘制的点的集合
+            coordinate: {x: 0, y: 0}, // 当前鼠标指针的逻辑坐标（已缩放+偏移后的真实坐标）
+            currentPoint: {x: '', y: ''}, // 当前选中的点（用于某些输入操作）
+            visiblePoints: [], // 当前画布中可见的点（可用于分页或渲染优化）
+            scale: 1, // 当前缩放比例
+            offset: {x: 0, y: 0}, // 画布的偏移量（用于拖动）
+            minScale: 0.01, // 最小缩放比例
+            maxScale: 5, // 最大缩放比例
+            loadedImages: [], // 已加载的图像资源（用于背景图渲染等）
+            selectedRoomId: -1, // 当前选中的房间 ID（可选功能）
+            autoFitApplied: false, // 是否已自动适配过画布
+            area: 0, // 当前图形的面积（可计算并展示）
+            length: 0, // 当前图形的总长度（例如线段长度总和）
+            canvasWidth: 1100, // canvas 宽度
+            canvasHeight: 900, // canvas 高度
+            currentMousePos: { x: 0, y: 0 }, // 当前鼠标在逻辑坐标系中的位置（用于绘图中动态展示）
+            isMouseInCanvas: false, // 鼠标是否位于 canvas 内部
+            showDistanceDialog: false, // 是否显示输入距离的弹窗
+            currentDirection: '', // 当前绘图方向（上、下、左、右）
+            currentBasePoint: null, // 当前绘图的起始点
+            inputDistance: '', // 用户输入的距离（用于确定新点位置）
+
+            // 新增数据项（右键菜单和编辑点）
+            showContextMenu: false, // 是否显示右键菜单
+            contextMenuStyle: {
+                top: '0px',
+                left: '0px'
+            }, // 右键菜单的位置样式
+            selectedPoint: null, // 当前被选中的点（右键点击选中）
+            showEditDialog: false, // 是否显示编辑点弹窗
+            editingPoint: {
+                x: 0,
+                y: 0,
+                originalX: null, // 编辑前的原始 x 坐标
+                originalY: null  // 编辑前的原始 y 坐标
+            },
+
+            directionMap: {
+                right: '右',
+                left: '左',
+                up: '上',
+                down: '下'
+            } // 英文方向与中文的映射（用于界面展示）
         };
     },
     mounted() {
         const canvas = this.$refs.canvas;
-        this.ctx = canvas.getContext('2d');
+        this.ctx = canvas.getContext('2d'); // 获取 canvas 的 2D 渲染上下文
 
-        this.updateCanvasSize();
-        window.addEventListener('resize', this.updateCanvasSize);
-        this.scale = 1;
-        this.offset = {x: 0, y: 0};
+        this.updateCanvasSize(); // 初始化画布尺寸
+        window.addEventListener('resize', this.updateCanvasSize); // 监听窗口大小变化，自动调整画布大小
+
+        this.scale = 1; // 初始化缩放比例
+        this.offset = {x: 0, y: 0}; // 初始化偏移量（用于平移）
+
+        // 添加滚轮缩放事件监听
         canvas.addEventListener('wheel', this.handleWheel, {passive: false});
-        this.redraw();
+
+        // 鼠标进入画布时标记状态并重绘
+        canvas.addEventListener("mouseenter", () => {
+            this.isMouseInCanvas = true;
+            this.redraw();
+        });
+
+        // 鼠标离开画布时标记状态并重绘
+        canvas.addEventListener("mouseleave", () => {
+            this.isMouseInCanvas = false;
+            this.redraw();
+        });
+
+        this.redraw(); // 初始绘制画布内容
     },
+
     beforeDestroy() {
-        window.removeEventListener('resize', this.updateCanvasSize);
+        window.removeEventListener('resize', this.updateCanvasSize); // 销毁时移除监听
     },
+
     methods: {
         updateCanvasSize() {
-            const containerWidth = window.innerWidth * 0.58; // 70vw
-            const containerHeight = window.innerHeight* 0.82;
-
+            const containerWidth = window.innerWidth * 0.58; // 设置 canvas 宽度为窗口的 58%
+            const containerHeight = window.innerHeight * 0.82; // 设置高度为 82%
             this.canvasWidth = containerWidth;
             this.canvasHeight = containerHeight;
-            this.redraw();
+            this.redraw(); // 更新画布内容
         },
-        // 数字格式修改
-        formatNumberWithCommas(cellValue) {
-            // 处理可能的 null 或 undefined 值
-            if (cellValue == null) return '';
 
-            // 将数字转换为字符串并添加千位分隔符
-            return cellValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
-            // 如果你需要更精确的数字处理，也可以使用 toLocaleString 方法
-            // return Number(cellValue).toLocaleString('en-US');
-        },
-// 修改 autoFit 方法中的偏移计算
+        // 修改 autoFit 方法中的偏移计算
         autoFit() {
             if (this.localPoints.length === 0) return;
 
-            // 坐标范围计算保持不变
+            // 获取点集的边界坐标
             const minX = Math.min(...this.localPoints.map(p => p.x));
             const minY = Math.min(...this.localPoints.map(p => p.y));
             const maxX = Math.max(...this.localPoints.map(p => p.x));
@@ -212,87 +315,558 @@ export default {
             const width = maxX - minX;
             const height = maxY - minY;
 
+            // 计算缩放因子，并设置为合适的比例
             const scaleX = (this.canvasWidth * 0.9) / width;
             const scaleY = (this.canvasHeight * 0.9) / height;
             this.scale = Math.min(scaleX, scaleY, this.maxScale);
 
-            // 计算逻辑中心点（注意坐标系方向）
+            // 居中显示所有点
             const centerX = (minX + maxX) / 2;
             const centerY = (minY + maxY) / 2;
 
-            // 关键修复：恢复正确的偏移计算
             this.offset = {
                 x: this.canvasWidth / 2 - centerX * this.scale,
-                y: this.canvasHeight / 2 - centerY * this.scale // 恢复减法运算
+                y: this.canvasHeight / 2 - centerY * this.scale
             };
 
             this.autoFitApplied = true;
         },
-        // 修改后的坐标处理方法
-        handleMouseMove(e) {
-            const rect = this.$refs.canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left - this.offset.x) / this.scale;
-            const y = (this.canvasHeight - (e.clientY - rect.top) - this.offset.y) / this.scale; // 翻转Y坐标
 
+        //用于数字格式化显示千分位分隔符，例如：1234567 → 1,234,567。
+        formatNumberWithCommas(cellValue) {
+            if (cellValue == null) return '';
+            return cellValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        },
+
+
+        handleMouseMove(e) {
+            // 获取 canvas 在页面中的位置信息
+            const rect = this.$refs.canvas.getBoundingClientRect();
+
+            // 将鼠标位置从屏幕坐标转换为逻辑坐标（考虑缩放和平移）
+            const x = (e.clientX - rect.left - this.offset.x) / this.scale;
+            const y = (this.canvasHeight - (e.clientY - rect.top) - this.offset.y) / this.scale;
+
+            // 如果当前处于绘制状态，则记录当前位置并触发重绘
+            if(this.drawStatus) {
+                this.currentMousePos = { x, y };
+                this.redraw(); // 重新绘制图形
+            }
+
+            // 实时更新坐标显示（保留1位小数）
             this.coordinate.x = x.toFixed(1);
             this.coordinate.y = y.toFixed(1);
 
+            // 如果正在拖拽视图
             if (this.isDragging) {
+                // 当前鼠标位置
                 const currentX = e.clientX - rect.left;
                 const currentY = e.clientY - rect.top;
 
+                // 根据鼠标移动的差值更新偏移量
                 this.offset.x += currentX - this.lastDragPos.x;
-                this.offset.y -= currentY - this.lastDragPos.y; // 修改拖动方向
+                this.offset.y -= currentY - this.lastDragPos.y; // 注意：Y轴方向相反
 
+                // 更新上一次拖拽的位置
                 this.lastDragPos = { x: currentX, y: currentY };
+
+                // 重绘图像以体现拖拽结果
                 this.redraw();
             }
         },
 
-        // 新增拖动相关方法
+
+
+        //鼠标的点击处理函数
         handleMouseDown(e) {
+            const rect = this.$refs.canvas.getBoundingClientRect();
+            const canvasX = e.clientX - rect.left;
+            const canvasY = e.clientY - rect.top;
+
+            // 转换为逻辑坐标
+            const x = (canvasX - this.offset.x) / this.scale;
+            const y = (this.canvasHeight - canvasY - this.offset.y) / this.scale;
+
+            // 左键按下并且处于拖拽模式
             if (this.dragStatus && e.button === 0) {
                 this.isDragging = true;
-                const rect = this.$refs.canvas.getBoundingClientRect();
-                this.lastDragPos = {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
+                this.lastDragPos = { x: canvasX, y: canvasY }; // 初始化拖拽起点
+                this.$refs.canvas.style.cursor = 'grabbing';   // 改变鼠标样式
+
+                // 左键按下并处于绘图状态
+            } else if (this.drawStatus && e.button === 0) {
+                const clickPoint = new Point(Math.round(x), Math.round(y)); // 点击点坐标四舍五入成整数
+
+                if (this.localPoints.length > 0) {
+                    const lastPoint = this.localPoints[this.localPoints.length - 1];
+
+                    // 计算与上一个点的方向差
+                    const dx = clickPoint.x - lastPoint.x;
+                    const dy = lastPoint.y - clickPoint.y; // 注意 Y 轴反向
+
+                    let direction = '';
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        direction = dx > 0 ? 'right' : 'left';
+                    } else {
+                        direction = dy > 0 ? 'down' : 'up';
+                    }
+
+                    // 设置当前绘图方向和起点
+                    this.currentDirection = direction;
+                    this.currentBasePoint = lastPoint;
+
+                    // 弹出距离输入框
+                    this.inputDistance = '';
+                    this.showDistanceDialog = true;
+
+                } else {
+                    // 如果是第一个点，直接加入点集
+                    this.localPoints.push(clickPoint);
+                    this.$emit('update:points', this.localPoints); // 通知父组件更新点列表
+                    this.redraw(); // 重绘图形
+                }
+            }
+        },
+
+        //鼠标的释放处理函数
+        handleMouseUp() {
+            this.isDragging = false; // 停止拖拽
+            this.$refs.canvas.style.cursor = 'crosshair'; // 恢复鼠标样式
+        },
+
+        // 修改后的滚轮缩放处理
+        handleWheel(e) {
+            e.preventDefault(); // 阻止页面滚动默认行为
+
+            const oldScale = this.scale;
+            const scaleFactor = 1.1;
+
+            // 根据滚轮方向调整缩放比例（deltaY < 0 表示向上滚，放大）
+            this.scale = e.deltaY < 0
+                ? Math.min(this.maxScale, this.scale * scaleFactor)
+                : Math.max(this.minScale, this.scale / scaleFactor);
+
+            // 鼠标位置相对 canvas 的位置
+            const rect = this.$refs.canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            // 更新偏移量，保证缩放中心在鼠标位置
+            this.offset.x = mx - (this.scale / oldScale) * (mx - this.offset.x);
+            this.offset.y = this.canvasHeight - my - (this.scale / oldScale) *
+                ((this.canvasHeight - my) - this.offset.y); // 注意 Y 轴反向处理
+
+            this.redraw(); // 缩放后重新绘图
+        },
+
+
+        handleCanvasRightClick(e) {
+            e.preventDefault(); // 禁用默认右键菜单
+
+            // 获取鼠标点击位置的逻辑坐标
+            const rect = this.$refs.canvas.getBoundingClientRect();
+            const logicalX = (e.clientX - rect.left - this.offset.x) / this.scale;
+            const logicalY = (this.canvasHeight - (e.clientY - rect.top) - this.offset.y) / this.scale;
+
+            const threshold = 5 / this.scale; // 缩放适配后的点击容差
+
+            // 查找是否有点位在点击范围内
+            this.selectedPoint = this.localPoints.find(point =>
+                Math.abs(point.x - logicalX) < threshold &&
+                Math.abs(point.y - logicalY) < threshold
+            );
+
+            if (this.selectedPoint) {
+                // 如果找到，显示自定义右键菜单
+                this.showContextMenu = true;
+                this.contextMenuStyle = {
+                    left: `${e.clientX}px`,
+                    top: `${e.clientY}px`
                 };
-                this.$refs.canvas.style.cursor = 'grabbing';
+            } else {
+                this.closeContextMenu(); // 否则关闭菜单
+            }
+        },
+
+        confirmDistanceInput() {
+            const distance = parseFloat(this.inputDistance); // 将用户输入的距离转换为浮点数
+            if (isNaN(distance)) { // 如果输入不是数字
+                this.$message.error('请输入有效的数字');
+                return;
+            }
+
+            let newPoint;
+            const base = this.currentBasePoint; // 当前起始点
+            // 根据当前方向生成新点
+            switch (this.currentDirection) {
+                case 'up':
+                    newPoint = new Point(base.x, base.y + distance);
+                    break;
+                case 'down':
+                    newPoint = new Point(base.x, base.y - distance);
+                    break;
+                case 'left':
+                    newPoint = new Point(base.x - distance, base.y);
+                    break;
+                case 'right':
+                    newPoint = new Point(base.x + distance, base.y);
+                    break;
+            }
+
+            // 检测是否与已有点重叠
+            if(this.checkAutoOverlap(newPoint)){
+                this.$message.warning('该点已存在，请输入其他距离');
+                return; // ❗停止添加，弹窗不关闭
+            }
+
+            this.localPoints.push(newPoint); // 添加点
+            this.$emit('update:points', this.localPoints); // 通知父组件数据更新
+            this.redraw(); // 重绘画布
+            this.showDistanceDialog = false; // 关闭输入框
+        },
+
+
+
+        // 菜单选择处理
+        handleMenuSelect(command) {
+            switch(command) {
+                case 'edit': // 编辑点坐标
+                    this.showEditDialog = true;
+                    this.editingPoint = {
+                        ...this.selectedPoint,
+                        originalX: this.selectedPoint.x,
+                        originalY: this.selectedPoint.y
+                    };
+                    break;
+                case 'delete': // 删除选中点
+                    this.removePoint(this.selectedPoint);
+                    break;
+                case 'setStart': // 设置起始点
+                    this.setStartPoint();
+                    break;
+            }
+            this.closeContextMenu(); // 无论执行哪种操作，最终关闭右键菜单
+        },
+
+
+        // 设为起始点
+        setStartPoint() {
+            if (!this.selectedPoint) return;
+
+            const currentIndex = this.localPoints.indexOf(this.selectedPoint);
+            if (currentIndex <= 0) return; // 若已是起点或找不到，退出
+
+            // 重新组织点顺序：[选中点, 后面的点, 前面的点]
+            this.localPoints = [
+                ...this.localPoints.slice(currentIndex),
+                ...this.localPoints.slice(0, currentIndex)
+            ];
+
+            this.$emit('update:points', this.localPoints); // 通知父组件
+            this.redraw(); // 重绘画布
+        },
+
+
+        // 确认编辑
+        confirmEdit() {
+            // 校验输入有效性
+            if (!this.editingPoint || !this.editingPoint.x || !this.editingPoint.y) {
+                this.$message.error('坐标数据异常');
+                return;
+            }
+
+            // 根据原始坐标找到对应点
+            const targetPoint = this.localPoints.find(p =>
+                p.x === this.editingPoint.originalX &&
+                p.y === this.editingPoint.originalY
+            );
+
+            if (targetPoint) {
+                Object.assign(targetPoint, {
+                    x: this.editingPoint.x,
+                    y: this.editingPoint.y
+                });
+
+                this.$emit('update:points', this.localPoints);
+                this.redraw();
+                this.showEditDialog = false;
+            } else {
+                this.$message.warning('未找到对应点位，可能已被删除');
             }
         },
 
 
-        handleMouseUp() {
-            this.isDragging = false;
-            this.$refs.canvas.style.cursor = 'crosshair';
+        // 关闭菜单
+        closeContextMenu() {
+            this.showContextMenu = false;
+            this.selectedPoint = null;
         },
 
-
-
-        handleCanvasRightClick(e) {
-            e.preventDefault();
-            const rect = this.$refs.canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left - this.offset.x) / this.scale;
-            const y = (e.clientY - rect.top - this.offset.y) / this.scale;
-            this.removePointAt(x, y);
+       // 取消距离输入弹窗
+        cancelDistanceInput() {
+            this.showDistanceDialog = false;
         },
 
+        //删除某个点
+        removePoint(point) {
+            const index = this.localPoints.indexOf(point);  //找到索引
+            if (index > -1) {
+                this.localPoints.splice(index, 1);
+                this.$emit('update:points', this.localPoints);
+                this.redraw();
+            }
+        },
+
+        checkAutoOverlap(clickPoint) {
+            if (!clickPoint) return false;
+
+            // 点重叠判断逻辑，允许5像素容差范围（考虑缩放误差）
+            const pointConflict = this.localPoints.some(point =>
+                this.calculateDistance(point, clickPoint) < 5
+            );
+
+            return pointConflict;
+        },
+// 重新绘制整个画布
+        redraw() {
+            requestAnimationFrame(() => {
+                // 先保存当前状态并重置变换矩阵
+                this.ctx.save();
+                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight); // 清除整个画布
+                this.ctx.restore();
+
+                this.ctx.save();
+                // 设置坐标变换：缩放+Y轴翻转+平移到offset
+                this.ctx.setTransform(
+                    this.scale,
+                    0,
+                    0,
+                    -this.scale, // Y轴翻转
+                    this.offset.x,
+                    this.canvasHeight - this.offset.y // 平移原点到底部
+                );
+                // 绘制点与其他图形
+                this.drawPoints();
+                this.ctx.restore();
+            });
+        },
+
+// 主绘制函数，绘制多边形、距离、标签等
+        drawPoints() {
+            if (this.localPoints.length === 0) return;
+
+            this.handleScaleSettings(); // 自动调整缩放
+            this.calculateMetrics(); // 计算面积、长度等信息
+
+            this.drawPolygon(); // 绘制封闭多边形
+            this.drawDistanceLabels(); // 绘制边长标签
+            this.drawPointsWithLabels(); // 绘制点及其编号
+            this.drawInteractiveElements(); // 绘制交互（临时点/虚线等）
+        },
+
+// 如果只有一个点时设置默认缩放比例
+        handleScaleSettings() {
+            if (this.localPoints.length === 1) {
+                this.scale = 10;
+            }
+        },
+
+// 计算可见点的总长度和面积
+        calculateMetrics() {
+            this.length = this.calculatePolygonLength(this.localPoints); // 多边形周长
+            this.area = this.calculatePolygonArea(this.localPoints);     // 多边形面积
+            this.visiblePoints = this.localPoints.filter(p => p.visible !== false); // 过滤掉不可见点
+        },
+
+// 绘制多边形闭合路径
+        drawPolygon() {
+            this.ctx.beginPath();
+            this.visiblePoints.forEach((point, index) => {
+                index === 0 ?
+                    this.ctx.moveTo(point.x, point.y) :
+                    this.ctx.lineTo(point.x, point.y);
+            });
+
+            if (this.visiblePoints.length > 1) {
+                this.ctx.lineTo(this.visiblePoints[0].x, this.visiblePoints[0].y); // 闭合路径
+            }
+
+            this.ctx.fillStyle = 'rgba(255, 209, 127, 0.5)'; // 填充颜色（半透明）
+            this.ctx.fill();
+            this.ctx.strokeStyle = 'blue'; // 边框颜色
+            this.ctx.lineWidth = 1 / this.scale; // 缩放比例下的线宽
+            this.ctx.stroke();
+        },
+
+// 为每条边添加中间的距离标签
+        drawDistanceLabels() {
+            if (this.visiblePoints.length <= 1) return;
+
+            this.ctx.fillStyle = '#00ff00'; // 标签文字颜色
+            this.ctx.textAlign = 'center';
+
+            this.visiblePoints.forEach((point, index) => {
+                const nextPoint = this.visiblePoints[(index + 1) % this.visiblePoints.length];
+                if (nextPoint.visible === false) return;
+
+                const midX = (point.x + nextPoint.x) / 2;
+                const midY = (point.y + nextPoint.y) / 2;
+
+                this.ctx.save();
+                this.drawTextAtPhysicalPos(
+                    Math.round(this.calculateDistance(point, nextPoint)), // 距离取整
+                    midX,
+                    midY,
+                    this.getFontSize(100 * this.scale)
+                );
+                this.ctx.restore();
+            });
+        },
+
+// 绘制每个点及其标签
+        drawPointsWithLabels() {
+            this.localPoints.forEach((point, index) => {
+                if (point.visible === false) return;
+
+                this.ctx.beginPath();
+                point.draw(this.ctx, this.scale); // 自定义绘制点的方法
+
+                this.ctx.save();
+                this.ctx.fillStyle = 'rgba(30,144,255)'; // 标签颜色
+                this.drawTextAtPhysicalPos(
+                    `${index + 1}`, // 标签为点的编号
+                    point.x,
+                    point.y - 5 / this.scale, // 向上偏移
+                    this.getFontSize(100 * this.scale),
+                    'left'
+                );
+                this.ctx.restore();
+            });
+        },
+
+// 绘制临时交互相关元素
+        drawInteractiveElements() {
+            if (this.drawStatus && this.visiblePoints.length > 0 && this.isMouseInCanvas) {
+                this.drawDottedLine(); // 当前鼠标位置与最后一个点之间的虚线
+            }
+
+            if (!this.$parent.autoAddMode && this.tempPoint) {
+                this.drawTempPoint(); // 临时预览点
+            }
+        },
+
+// 在真实物理坐标下绘制文本
+        drawTextAtPhysicalPos(text, logicalX, logicalY, fontSize, align = 'center') {
+            this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 恢复物理坐标
+            const physicalPos = this.logicalToPhysical(logicalX, logicalY);
+            this.ctx.font = `${fontSize}px Arial`;
+            this.ctx.textAlign = align;
+            this.ctx.fillText(text, physicalPos.x, physicalPos.y);
+        },
+
+// 根据缩放比例获取合适字体大小
+        getFontSize(scaleFactor) {
+            const sizeMap = [
+                [300, 50],
+                [200, 20],
+                [100, 10],
+                [60, 4]
+            ];
+            const matchedSize = sizeMap.find(([threshold]) => scaleFactor > threshold);
+            return matchedSize ? matchedSize[1] : 80 * this.scale;
+        },
+
+// 鼠标位置与最后点之间画虚线
+        drawDottedLine() {
+            const lastPoint = this.visiblePoints[this.visiblePoints.length - 1];
+            this.ctx.save();
+            this.ctx.beginPath();
+            this.ctx.moveTo(lastPoint.x, lastPoint.y);
+            this.ctx.lineTo(this.currentMousePos.x, this.currentMousePos.y);
+
+            const dx = this.currentMousePos.x - lastPoint.x;
+            const dy = this.currentMousePos.y - lastPoint.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const dashLength = distance / 20; // 虚线间距
+
+            this.ctx.setLineDash([dashLength, dashLength]);
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.lineWidth = 1 / this.scale;
+            this.ctx.stroke();
+            this.ctx.restore();
+        },
+
+// 绘制预览临时点和与其连接的虚线
+        drawTempPoint() {
+            if (!this.tempPoint) return;
+
+            this.ctx.beginPath();
+            this.tempPoint.draw(this.ctx, this.scale);
+            this.ctx.fillStyle = 'rgba(255,0,0,0.5)';
+            this.ctx.fill();
+
+            const lineWidth = 1 / Math.abs(this.ctx.getTransform().a);
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.lineWidth = lineWidth;
+
+            const computeDash = (p1, p2) => {
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                return Math.sqrt(dx * dx + dy * dy) / 20;
+            };
+
+            if (this.firstPoint) {
+                const dashLength = computeDash(this.firstPoint, this.tempPoint);
+                this.ctx.setLineDash([dashLength, dashLength]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.firstPoint.x, this.firstPoint.y);
+                this.ctx.lineTo(this.tempPoint.x, this.tempPoint.y);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+            }
+
+            if (this.lastPoint) {
+                const dashLength = computeDash(this.lastPoint, this.tempPoint);
+                this.ctx.setLineDash([dashLength, dashLength]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.lastPoint.x, this.lastPoint.y);
+                this.ctx.lineTo(this.tempPoint.x, this.tempPoint.y);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+            }
+        },
+
+// 两点之间距离
+        calculateDistance(p1, p2) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        },
+
+// 逻辑坐标转换为屏幕物理坐标
+        logicalToPhysical(logicalX, logicalY) {
+            return {
+                x: logicalX * this.scale + this.offset.x,
+                y: this.canvasHeight - (logicalY * this.scale + this.offset.y)
+            };
+        },
+
+// 计算多边形面积（Shoelace公式）
         calculatePolygonArea(points) {
             if (points.length < 3) return 0;
-
             let area = 0;
             for (let i = 0; i < points.length; i++) {
                 const j = (i + 1) % points.length;
                 area += points[i].x * points[j].y;
                 area -= points[j].x * points[i].y;
             }
-
             return Math.abs(area / 2);
         },
+
+// 计算多边形边长总和
         calculatePolygonLength(points) {
             if (points.length < 2) return 0;
-
             let length = 0;
             for (let i = 0; i < points.length; i++) {
                 const j = (i + 1) % points.length;
@@ -302,241 +876,7 @@ export default {
             }
             return length;
         },
-        // 修改后的滚轮缩放处理
-        handleWheel(e) {
-            e.preventDefault();
 
-            const oldScale = this.scale;
-            const scaleFactor = 1.1;
-            this.scale = e.deltaY < 0
-                ? Math.min(this.maxScale, this.scale * scaleFactor)
-                : Math.max(this.minScale, this.scale / scaleFactor);
-
-            const rect = this.$refs.canvas.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const my = e.clientY - rect.top;
-
-            this.offset.x = mx - (this.scale / oldScale) * (mx - this.offset.x);
-            this.offset.y = this.canvasHeight - my - (this.scale / oldScale) *
-                ((this.canvasHeight - my) - this.offset.y); // 调整锚点计算
-
-            this.redraw();
-        },
-
-        // 修改后的重绘方法
-        redraw() {
-            requestAnimationFrame(() => {
-                this.ctx.save();
-                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
-                this.ctx.restore();
-
-                this.ctx.save();
-                // 应用坐标变换（关键修改）
-                this.ctx.setTransform(
-                    this.scale,
-                    0,
-                    0,
-                    -this.scale, // Y轴翻转
-                    this.offset.x,
-                    this.canvasHeight - this.offset.y // 调整原点位置
-                );
-                // this.drawImage();
-                this.drawPoints();
-                this.ctx.restore();
-            });
-        },
-
-        // 修改后的图片绘制方法
-        drawImage() {
-            const selectedIndex = this.selectedImageIndex;
-            const img = this.loadedImages[selectedIndex];
-            if (img) {
-                // 调整图片绘制位置
-                this.ctx.drawImage(img, 0, -img.height); // 保持图片正常方向
-            }
-        },
-
-        drawPoints() {
-            if (this.localPoints.length === 0) return;
-            if(this.localPoints.length===1){
-                this.scale=10;
-            }
-            this.length=this.calculatePolygonLength(this.localPoints)
-            this.area=this.calculatePolygonArea(this.localPoints)
-            // 1. 过滤出可见点
-            const visiblePoints = this.localPoints.filter(p => p.visible !== false);
-
-            // 2. 绘制多边形路径（仅可见点）
-            this.ctx.beginPath();
-            visiblePoints.forEach((point, index) => {
-                index === 0 ?
-                    this.ctx.moveTo(point.x, point.y) :
-                    this.ctx.lineTo(point.x, point.y);
-            });
-
-            // 3. 闭合路径条件修正
-            if (visiblePoints.length > 1) {
-                // 始终连接首尾可见点（而不是原始数组的首尾）
-                this.ctx.lineTo(visiblePoints[0].x, visiblePoints[0].y);
-            }
-
-            // 4. 填充和描边
-            this.ctx.fillStyle = 'rgba(255, 209, 127, 0.5)';
-            this.ctx.fill();
-            this.ctx.strokeStyle = 'blue';
-            this.ctx.lineWidth = 1 / this.scale;
-            this.ctx.stroke();
-
-            // 绘制点间距离
-            this.ctx.fillStyle = '#00ff00'; // 绿色
-            this.ctx.font = `${60 * this.scale}px Arial`;
-            this.ctx.textAlign = 'center'
-            if(visiblePoints.length>1){
-            visiblePoints.forEach((point, index) => {
-                const nextPoint = visiblePoints[(index + 1) % visiblePoints.length];
-                if (nextPoint.visible !== false) {
-                    // 计算中点位置
-                    const midX = (point.x + nextPoint.x) / 2;
-                    const midY = (point.y + nextPoint.y) / 2;
-
-                    // 绘制距离
-                    this.ctx.save();
-                    this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置矩阵获取物理坐标
-                    const physicalMid = this.logicalToPhysical(midX, midY);
-                    if(100*this.scale>300){
-                        const size=1
-                        this.ctx.font = `${50 * size}px Arial`;
-                    }
-                    else if(100*this.scale>200) {
-                        const size = 1
-                        this.ctx.font = `${20 * size}px Arial`;
-                    }
-                    else if(100*this.scale>100) {
-                        const size = 1
-                        this.ctx.font = `${10 * size}px Arial`;
-                    }
-                    else if(100*this.scale>60) {
-                        const size = 1
-                        this.ctx.font = `${4 * size}px Arial`;
-                    }
-                    else {
-                        this.ctx.font = `${80 * this.scale}px Arial`;
-                    }
-                    this.ctx.fillText(
-                        Math.round(this.calculateDistance(point, nextPoint)), // 取整
-                        physicalMid.x,
-                        physicalMid.y
-                    );
-                    this.ctx.restore();
-                }
-            });}
-            // 绘制点和序号
-            this.localPoints.forEach((point, index) => {
-                if (point.visible !== false) {
-                    // 绘制点
-                    this.ctx.beginPath();
-                    point.draw(this.ctx, this.scale);
-
-                    // 绘制序号
-                    this.ctx.fillStyle ='rgba(30,144,255)';
-                    if(100*this.scale>300){
-                        const size=1
-                        this.ctx.font = `${50 * size}px Arial`;
-                    }
-                    else if(100*this.scale>200) {
-                        const size = 1
-                        this.ctx.font = `${30 * size}px Arial`;
-                    }
-                    else if(100*this.scale>100) {
-                        const size = 1
-                        this.ctx.font = `${15 * size}px Arial`;
-                    }
-                    else if(100*this.scale>60) {
-                        const size = 1
-                        this.ctx.font = `${4 * size}px Arial`;
-                    }
-                    else {
-                        this.ctx.font = `${80 * this.scale}px Arial`;
-                    }
-                    this.ctx.textAlign = 'left';
-
-                    this.ctx.save();
-                    this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置矩阵获取物理坐标
-                    const physicalPos = this.logicalToPhysical(point.x, point.y);
-                    this.ctx.fillText(
-                        `${index + 1}`,
-                        physicalPos.x ,  // 向右偏移8像素
-                        physicalPos.y-5,    // 向上偏移8像素
-                    );
-                    // 显示整数坐标（X:123 Y:456）
-                    // const coordText = `X:${Math.round(point.x)} Y:${Math.round(point.y)}`;
-                    // this.ctx.fillText(
-                    //     coordText,
-                    //     physicalPos.x + 15,  // 向右偏移
-                    //     physicalPos.y + 20    // 向下偏移
-                    // );
-                    this.ctx.restore();
-                }
-            });
-            // 绘制临时点
-            if (!this.$parent.autoAddMode && this.tempPoint) {
-                this.drawTempPoint();
-            }
-        },
-        drawTempPoint() {
-            if (!this.tempPoint) return;
-
-            // 绘制临时点
-            this.ctx.beginPath();
-            this.tempPoint.draw(this.ctx);
-            this.ctx.fillStyle = 'rgba(255,0,0,0.5)';
-            this.ctx.fill();
-            if (this.firstPoint) {
-                this.ctx.beginPath();
-                this.ctx.moveTo(this.firstPoint.x, this.firstPoint.y);
-                this.ctx.lineTo(this.tempPoint.x, this.tempPoint.y);
-                this.ctx.strokeStyle = '#ff0000';
-                this.ctx.lineWidth = 1 / Math.abs(this.ctx.getTransform().a); // 动态计算线宽
-                this.ctx.stroke();
-            }
-            // 绘制临时连线（使用物理坐标计算线宽）
-            if (this.lastPoint) {
-                this.ctx.beginPath();
-                this.ctx.moveTo(this.lastPoint.x, this.lastPoint.y);
-                this.ctx.lineTo(this.tempPoint.x, this.tempPoint.y);
-                this.ctx.strokeStyle = '#ff0000';
-                this.ctx.lineWidth = 1 / Math.abs(this.ctx.getTransform().a); // 动态计算线宽
-                this.ctx.stroke();
-            }
-
-        },
-// 添加距离计算方法
-        calculateDistance(p1, p2) {
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            return Math.sqrt(dx * dx + dy * dy).toFixed(2);
-        },
-// 新增坐标转换方法
-        logicalToPhysical(logicalX, logicalY) {
-            return {
-                x: logicalX * this.scale + this.offset.x,
-                y: this.canvasHeight - (logicalY * this.scale + this.offset.y)
-            };
-        },
-        removePointAt(x, y) {
-            const pointToRemove = this.localPoints.find(point => {
-                const dx = x - point.x;
-                const dy = y - point.y;
-                return Math.sqrt(dx * dx + dy * dy) <= 5 / this.scale; // 考虑缩放后的点击区域
-            });
-            if (pointToRemove) {
-                const index = this.localPoints.indexOf(pointToRemove);
-                this.localPoints.splice(index, 1);
-                this.$emit('update:points', this.localPoints);
-                this.redraw();
-            }
-        },
     }
 };
 </script>
@@ -559,16 +899,40 @@ canvas {
     background-color: #f5f5f5;
     cursor: crosshair;
 }
+.context-menu {
+    position: fixed;
+    z-index: 9999;
+    background: white;
+    border: 1px solid #ebeef5;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
+}
 
+.custom-menu {
+    border-right: none;
+}
+
+.custom-menu .el-menu-item {
+    height: 36px;
+    line-height: 36px;
+    font-size: 13px;
+}
+
+.custom-menu .el-menu-item i {
+    margin-right: 8px;
+}
 .coordinate-display {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    background-color: white;
-    padding: 5px;
+    top: 20px;
+    right: 600px;
+    background-color: #409EFF;
+    padding: 4px 8px;
     border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    color: #ffffff;
+    pointer-events: none;
 }
+
 
 .zoom-info {
     position: absolute;

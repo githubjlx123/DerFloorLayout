@@ -3,317 +3,305 @@
 
 
         <div class="sidebar-left">
-                <div class="toolFeatures">
-                    <div class="assistFeatures">
-                        <p class="saveJson" title="保存当前标注" @click="handleSave"></p>
-                        <p class="toolName">保存</p>
-                    </div>
-                    <div class="separator"></div>
-                    <div id="tools">
+            <div class="toolFeatures1">
 
-                        <div class="toolSet toolDrag" :class="{'focus':isFocus==='toolDrag'}" title="图片拖拽"
-                             @click="handelToolDrag('toolDrag')"></div>
-                        <p class="toolName">图片拖拽</p>
-
-
-                        <div id="draw-ract">
-                            <div class="toolSet toolRect" id="toolRect_id" :class="{'focus':isFocus==='toolRect'}"
-                                 title="矩形工具"
-                                 @click="handelToolRect('toolRect')"></div>
-                            <p class="toolName">绘制矩形</p>
-                        </div>
-
-                        <div id="draw-polygon">
-                            <div
-                                class="toolSet toolPolygon"
-                                id="toolPolyon_id"
-                                :class="{ focus: isFocus === 'toolPolygon' }"
-                                title="多边形工具"
-                                @click="handelToolPolygon('toolPolygon')"
-                            ></div>
-                            <p class="toolName">多边形</p>
-                        </div>
-
-                    </div>
+                <div class="tool-icon" @click="handleSave">
+                    <i class="el-icon-document"></i>
+                    <span class="tool-label">保存</span>
                 </div>
-        </div>
-            <!-- 左侧 Canvas区域 -->
+                <div class="tool-icon" @click="handleReset">
+                    <i class="el-icon-refresh"></i>
+                    <span class="tool-label">重置</span>
+                </div>
+<!--                <div class="tool-icon" @click="handleUndo">-->
+<!--                    <i class="el-icon-back"></i>-->
+<!--                    <span class="tool-label">撤回</span>-->
+<!--                </div>-->
+                <!-- 分隔线 -->
+                <div class="tool-divider"></div>
+                <div class="tool-icon" :class="{ focus: isFocus === 'toolDrag' }" @click="handelToolDrag('toolDrag')">
+                    <i class="el-icon-rank"></i>
+                    <span class="tool-label">拖拽</span>
+                </div>
+                <div class="tool-icon" :class="{ focus: isFocus === 'toolPoint' }" @click="handleDrawPoint('toolPoint')">
+                    <i class="el-icon-location-outline"></i>
+                    <span class="tool-label">画点</span>
+                </div>
+            </div>
+            </div>
+
+        <!-- 左侧 Canvas区域 -->
         <div class="main-content">
 
-                <AnnotationCanvas
-                    ref="drawingCanvas"
-                    :temp-point="tempPoint"
-                    :last-point="lastPoint"
-                    :first-point="firstPoint"
-                    :images="images"
-                    :selectedImageIndex="selectedImageIndex"
-                    :points="selectedRoomData"
-                    :rooms="rooms"
-                    :drag-status="dragStatus"
-                    :selectedRoom="selectedRoom"
-                    @update:points="val => selectedRoomData = val"
-                    @room-selected="handleRoomSelected"
-                />
+            <AnnotationCanvas
+                ref="drawingCanvas"
+                :temp-point="tempPoint"
+                :last-point="lastPoint"
+                :first-point="firstPoint"
+                :images="images"
+                :selectedImageIndex="selectedImageIndex"
+                :points="selectedRoomData"
+                :rooms="rooms"
+                :drag-status="dragStatus"
+                :draw-status="drawStatus"
+                :selectedRoom="selectedRoom"
+                @update:points="val => selectedRoomData = val"
+                @room-selected="handleRoomSelected"
+            />
         </div>
 
         <div class="sidebar-right">
-                <div class="commentResult">
-                    <el-card class="room-selection">
-                        <template #header>
-                            <div class="card-header">
-                                <span>选择房间</span>
-                                <span>点集合总数 ({{ selectedRoomData.length }})</span>
+            <div class="commentResult">
+                <el-card class="room-selection">
+                    <template #header>
+                        <div class="card-header">
+                            <span>选择房间</span>
+                            <span>点集合总数 ({{ selectedRoomData.length }})</span>
+
+                        </div>
+                    </template>
+                    <el-select
+                        v-model="selectedRoomId"
+                        placeholder="请选择房间"
+                        @change="selectRoom"
+                        style="width: 100%"
+                    >
+                        <el-option
+                            v-for="room in rooms"
+                            :key="room.id"
+                            :label="room.name"
+                            :value="room.id"
+                        />
+                    </el-select>
+
+                </el-card>
+
+
+                <!-- 使用el-tabs来替代原来的切换按钮 -->
+                <el-tabs v-model="currentMode" type="border-card" @tab-change="handleTabChange"
+                         class="custom-tabs"  >
+                    <!-- 移动控制功能 -->
+                    <el-tab-pane label="绘制模式" name="move">
+                        <el-form :model="moveDistance">
+                            <el-form-item label="自动保存" class="combined-control">
+                                <div class="control-wrapper">
+                                    <el-switch
+                                        v-model="autoAddMode"
+                                        :active-value="true"
+                                        :inactive-value="false"
+                                        style="--el-switch-on-color: #67C23A; --el-switch-off-color: #909399"
+                                        @change="handleModeChange"
+
+                                    >
+                                        <template #active>
+                                            <span class="inner-label">自动</span>
+                                        </template>
+                                        <template #inactive>
+                                            <span class="inner-label">手动</span>
+                                        </template>
+                                    </el-switch>
+
+                                    <!-- 坐标显示区域 -->
+                                    <div v-if="tempPoint || show_lastPoint" class="coordinate-display1">
+                                        <el-tag  class="coordinate-item">
+                                            X: {{ autoAddMode ? show_lastPoint.x : tempPoint.x }}
+                                        </el-tag>
+                                        <el-tag class="coordinate-item">
+                                            Y: {{ autoAddMode ? show_lastPoint.y : tempPoint.y }}
+                                        </el-tag>
+                                    </div>
+                                </div>
+                            </el-form-item>
+
+
+                            <el-form-item label="平移距离">
+                                <el-input-number
+                                    v-model.number="moveDistance.value"
+                                    :step="100"
+                                    controls-position="right"
+                                    style="width: 50%"
+                                />
+                            </el-form-item>
+
+                            <el-form-item class="direction-buttons">
+                                <div class="direction" >
+                                    <div class="direction-container">
+                                        <!-- 上下左右方向键 -->
+                                        <div class="direction-keyboard">
+                                            <div class="direction-row">
+                                                <el-button
+                                                    type="primary"
+                                                    icon="el-icon-top"
+                                                    @click="movePoint('up')"
+                                                >上
+                                                </el-button>
+                                            </div>
+                                            <div class="direction-row">
+                                                <el-button
+                                                    type="primary"
+                                                    icon="el-icon-back"
+                                                    @click="movePoint('left')"
+                                                >左
+                                                </el-button>
+                                                <el-button
+                                                    type="primary"
+                                                    icon="el-icon-right"
+                                                    @click="movePoint('right')"
+                                                >右
+                                                </el-button>
+                                            </div>
+                                            <div class="direction-row">
+                                                <el-button
+                                                    type="primary"
+                                                    icon="el-icon-bottom"
+                                                    @click="movePoint('down')"
+                                                >下
+                                                </el-button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- 确认和取消按钮 -->
+
+
+                                    <el-button
+                                        v-if="!autoAddMode"
+                                        type="success"
+                                        :icon="isOverlapping ? 'el-icon-warning' : 'el-icon-check'"
+                                        :disabled="isOverlapping || !tempPoint"
+                                        @click="handleConfirmAction"
+                                        class="add-btn"
+                                    >
+                                        {{ getConfirmButtonText }}
+                                    </el-button>
+
+                                    <el-button
+                                        v-if="!autoAddMode"
+                                        type="danger"
+                                        icon="el-icon-close"
+                                        :disabled="!tempPoint"
+                                        @click="quitTempPoint"
+                                        class="cancel-btn"
+                                    >
+                                        取消添加
+                                    </el-button>
+                                </div>
+
+                            </el-form-item>
+
+                        </el-form>
+                    </el-tab-pane>
+                    <!-- 插入点功能 -->
+                    <el-tab-pane label="坐标模式" name="insert">
+                        <el-form
+                            :model="insertData"
+                            label-width="90px"
+                            class="form-align"
+                        >
+                            <!-- 前置索引输入 -->
+                            <el-form-item label="前置索引">
+                                <el-input-number
+                                    v-model.number="insertData.startIndex"
+                                    :min="0"
+                                    :max="selectedRoomData.length || 1"
+                                    :disabled="selectedRoomData.length === 0"
+                                    controls-position="right"
+                                    class="form-input"
+                                />
+                            </el-form-item>
+
+                            <!-- 坐标输入组 -->
+                            <div class="coordinate-group">
+                                <el-form-item label="X坐标">
+                                    <el-input-number
+                                        v-model.number="insertData.newPoint.x"
+                                        :step="100"
+                                        class="form-input"
+                                    />
+                                </el-form-item>
+                            </div>
+                            <div class="coordinate-group">
+                                <el-form-item label="Y坐标">
+                                    <el-input-number
+                                        v-model.number="insertData.newPoint.y"
+                                        :step="100"
+                                        class="form-input"
+                                    />
+                                </el-form-item>
+                            </div>
+
+                            <!-- 操作按钮 -->
+                            <el-form-item class="form-action">
+                                <el-button
+                                    type="success"
+                                    @click="insertPointAfter"
+                                    icon="el-icon-insert"
+                                    size="medium"
+                                >插入点</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </el-tab-pane>
+                </el-tabs>
+
+                <el-card class="resultArea1">
+                    <el-table
+                        :data="selectedRoomData"
+                        border
+                        height="300px"
+                        style="width: 100%"
+                    >
+                        <el-table-column label="序号" align="center">
+                            <template #default="{ $index }">
+                                {{ $index + 1 }}
+                            </template>
+                        </el-table-column>
+
+                        <el-table-column prop="x" label="X坐标" align="center" />
+                        <el-table-column prop="y" label="Y坐标" align="center" />
+
+                        <el-table-column label="显隐" align="center">
+                            <template #default="{ row, $index }">
+                                <el-switch
+                                    v-model="row.visible"
+                                    active-color="#13ce66"
+                                    inactive-color="#ff4949"
+                                    @change="() => handleVisibilityChange($index)"
+                                />
+                            </template>
+                        </el-table-column>
+
+                        <el-table-column label="编辑" width="60" align="center">
+                            <template #default="{ $index }">
+                                <el-button
+                                    type="primary"
+                                    icon="el-icon-edit"
+                                    size="mini"
+                                    circle
+                                    @click="editPoint($index)"
+                                />
+                            </template>
+                        </el-table-column>
+
+                        <el-table-column label="删除" width="65" align="center">
+                            <template #default="{ $index }">
                                 <el-button
                                     type="danger"
                                     icon="el-icon-delete"
+                                    size="mini"
                                     circle
-                                    @click="resetRoomPoints"
-                                    style="float: right; padding: 3px 0"
+                                    @click="removePoint($index)"
                                 />
-                            </div>
-                        </template>
-                        <el-select
-                            v-model="selectedRoomId"
-                            placeholder="请选择房间"
-                            @change="selectRoom"
-                            style="width: 100%"
-                        >
-                            <el-option
-                                v-for="room in rooms"
-                                :key="room.id"
-                                :label="room.name"
-                                :value="room.id"
-                            />
-                        </el-select>
-
-                    </el-card>
-
-
-                        <!-- 使用el-tabs来替代原来的切换按钮 -->
-                        <el-tabs v-model="currentMode" type="border-card" @tab-change="handleTabChange"
-                                 class="custom-tabs"  >
-                            <!-- 移动控制功能 -->
-                            <el-tab-pane label="绘制模式" name="move">
-                                <el-form :model="moveDistance">
-                                    <el-form-item label="自动保存" class="combined-control">
-                                        <div class="control-wrapper">
-                                            <el-switch
-                                                v-model="autoAddMode"
-                                                :active-value="true"
-                                                :inactive-value="false"
-                                                style="--el-switch-on-color: #67C23A; --el-switch-off-color: #909399"
-                                                @change="handleModeChange"
-                                                :before-change="validateModeChange"
-                                            >
-                                                <template #active>
-                                                    <span class="inner-label">自动</span>
-                                                </template>
-                                                <template #inactive>
-                                                    <span class="inner-label">手动</span>
-                                                </template>
-                                            </el-switch>
-
-                                            <!-- 坐标显示区域 -->
-                                            <div v-if="tempPoint || show_lastPoint" class="coordinate-display1">
-                                                <el-tag  class="coordinate-item">
-                                                    X: {{ autoAddMode ? show_lastPoint.x : tempPoint.x }}
-                                                </el-tag>
-                                                <el-tag class="coordinate-item">
-                                                    Y: {{ autoAddMode ? show_lastPoint.y : tempPoint.y }}
-                                                </el-tag>
-                                            </div>
-                                        </div>
-                                    </el-form-item>
-
-
-                                    <el-form-item label="平移距离">
-                                        <el-input-number
-                                            v-model.number="moveDistance.value"
-                                            :step="100"
-                                            controls-position="right"
-                                            style="width: 50%"
-                                        />
-                                    </el-form-item>
-
-                                    <el-form-item class="direction-buttons">
-                                        <div class="direction" >
-                                            <div class="direction-container">
-                                                <!-- 上下左右方向键 -->
-                                                <div class="direction-keyboard">
-                                                    <div class="direction-row">
-                                                        <el-button
-                                                            type="primary"
-                                                            icon="el-icon-top"
-                                                            @click="movePoint('up')"
-                                                        >上
-                                                        </el-button>
-                                                    </div>
-                                                    <div class="direction-row">
-                                                        <el-button
-                                                            type="primary"
-                                                            icon="el-icon-back"
-                                                            @click="movePoint('left')"
-                                                        >左
-                                                        </el-button>
-                                                        <el-button
-                                                            type="primary"
-                                                            icon="el-icon-right"
-                                                            @click="movePoint('right')"
-                                                        >右
-                                                        </el-button>
-                                                    </div>
-                                                    <div class="direction-row">
-                                                        <el-button
-                                                            type="primary"
-                                                            icon="el-icon-bottom"
-                                                            @click="movePoint('down')"
-                                                        >下
-                                                        </el-button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- 确认和取消按钮 -->
-
-
-                                            <el-button
-                                                v-if="!autoAddMode"
-                                                type="success"
-                                                :icon="isOverlapping ? 'el-icon-warning' : 'el-icon-check'"
-                                                :disabled="isOverlapping || !tempPoint"
-                                                @click="handleConfirmAction"
-                                                class="add-btn"
-                                            >
-                                                {{ getConfirmButtonText }}
-                                            </el-button>
-
-                                            <el-button
-                                                v-if="!autoAddMode"
-                                                type="danger"
-                                                icon="el-icon-close"
-                                                :disabled="!tempPoint"
-                                                @click="quitTempPoint"
-                                                class="cancel-btn"
-                                            >
-                                                取消添加
-                                            </el-button>
-                                        </div>
-
-                                    </el-form-item>
-
-                                </el-form>
-                            </el-tab-pane>
-                            <!-- 插入点功能 -->
-                            <el-tab-pane label="坐标模式" name="insert">
-                                <el-form
-                                    :model="insertData"
-                                    label-width="90px"
-                                    class="form-align"
-                                >
-                                    <!-- 前置索引输入 -->
-                                    <el-form-item label="前置索引">
-                                        <el-input-number
-                                            v-model.number="insertData.startIndex"
-                                            :min="0"
-                                            :max="selectedRoomData.length || 1"
-                                            :disabled="selectedRoomData.length === 0"
-                                            controls-position="right"
-                                            class="form-input"
-                                        />
-                                    </el-form-item>
-
-                                    <!-- 坐标输入组 -->
-                                    <div class="coordinate-group">
-                                        <el-form-item label="X坐标">
-                                            <el-input-number
-                                                v-model.number="insertData.newPoint.x"
-                                                :step="100"
-                                                class="form-input"
-                                            />
-                                        </el-form-item>
-                                    </div>
-                                    <div class="coordinate-group">
-                                        <el-form-item label="Y坐标">
-                                            <el-input-number
-                                                v-model.number="insertData.newPoint.y"
-                                                :step="100"
-                                                class="form-input"
-                                            />
-                                        </el-form-item>
-                                    </div>
-
-                                    <!-- 操作按钮 -->
-                                    <el-form-item class="form-action">
-                                        <el-button
-                                            type="success"
-                                            @click="insertPointAfter"
-                                            icon="el-icon-insert"
-                                            size="medium"
-                                        >插入点</el-button>
-                                    </el-form-item>
-                                </el-form>
-                            </el-tab-pane>
-                        </el-tabs>
-
-                    <el-card class="resultArea">
-                        <el-table
-                            :data="selectedRoomData"
-                            border
-                            height="300px"
-                            style="width: 100%"
-                        >
-                            <el-table-column label="序号" align="center">
-                                <template #default="{ $index }">
-                                    {{ $index + 1 }}
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column prop="x" label="X坐标" align="center" />
-                            <el-table-column prop="y" label="Y坐标" align="center" />
-
-                            <el-table-column label="显隐" align="center">
-                                <template #default="{ row, $index }">
-                                    <el-switch
-                                        v-model="row.visible"
-                                        active-color="#13ce66"
-                                        inactive-color="#ff4949"
-                                        @change="() => handleVisibilityChange($index)"
-                                    />
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="编辑" width="60" align="center">
-                                <template #default="{ $index }">
-                                    <el-button
-                                        type="primary"
-                                        icon="el-icon-edit"
-                                        size="mini"
-                                        circle
-                                        @click="editPoint($index)"
-                                    />
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="删除" width="65" align="center">
-                                <template #default="{ $index }">
-                                    <el-button
-                                        type="danger"
-                                        icon="el-icon-delete"
-                                        size="mini"
-                                        circle
-                                        @click="removePoint($index)"
-                                    />
-                                </template>
-                            </el-table-column>
-                        </el-table>
-                    </el-card>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-card>
 
 
 
 
 
-                </div>
+            </div>
         </div>
-            <!-- 右侧 标注结果集 -->
+        <!-- 右侧 标注结果集 -->
 
 
     </div>
@@ -337,84 +325,198 @@ export default {
     },
     data() {
         return {
-            user_id:localStorage.getItem('ms_user_id'),//用户ID
-            house_id:localStorage.getItem('annotation_house_id'),//房间ID
-            // annotation_index:
+            user_id: localStorage.getItem('ms_user_id'), // 从 localStorage 获取当前用户 ID，用于记录和标识当前操作人
+            house_id: localStorage.getItem('annotation_house_id'), // 从 localStorage 获取当前标注的房间 ID，用于在多个房间之间切换标注数据
             insertData: {
-                startIndex: 0,
-                newPoint: { x: null, y: null }
+                startIndex: 0, // 当前插入点的起始索引，用于决定将新点插入到哪个位置
+                newPoint: { x: null, y: null } // 要插入的新点坐标，默认为 null，待用户点击或输入后赋值
             },
-            currentMode: 'move', // 默认显示插入点功能
+            currentMode: 'move', // 当前的操作模式，默认是“move”即平移模式，也可能是“draw”
             images: [
                 {
-                    name: '默认图片',
-                    base64: require('@/assets/img/img.jpg')
+                    name: '默认图片', // 图片名称
+                    base64: require('@/assets/img/img.jpg') // 使用 require 加载本地图片资源（base64 形式），后续可扩展多张
                 }
             ],
-            isFocus: 'toolDrag',//工具栏
-            selectedImageIndex: 0,
-            rooms: [],
-            selectedRoom: null,
-            selectedRoomId: -1,
-            selectedRoomData: [],
-            currentPoint: { x: '', y: '' },
-            moveDistance: { value: 100 },  // 默认平移距离
-            autoAddMode: false,
-            tempPoint: null,               // 临时点
-            lastPoint: null,               // 最后有效点
-            firstPoint: null,
-            show_lastPoint: null,
-            dragStatus: true,
-
+            isFocus: 'toolDrag', // 当前聚焦的工具栏按钮标识，默认是工具拖拽按钮（toolDrag）
+            selectedImageIndex: 0, // 当前选择的图片索引，默认选择第 0 张图片
+            rooms: [], // 房间列表，初始为空，后续通过 fetchRoomData 动态加载
+            selectedRoom: null, // 当前选中的房间对象，初始为 null
+            selectedRoomId: -1, // 当前选中房间的 ID，-1 表示未选中任何房间
+            selectedRoomData: [], // 当前选中房间的标注点数据列表（坐标点）
+            currentPoint: { x: '', y: '' }, // 当前鼠标所在位置或用户点击的坐标点，初始化为空字符串
+            moveDistance: { value: 100 }, // 平移模式下每次移动的默认距离（单位：像素）
+            autoAddMode: true, // 是否处于自动添加点的模式，true 表示开启，点击后自动添加点
+            tempPoint: null, // 当前准备添加的“临时点”，可用于检测重叠、预览显示等逻辑
+            lastPoint: null, // 最后一次成功添加的点，用于辅助连线或判断操作顺序等
+            firstPoint: null, // 第一个添加的点，用于构成封闭路径或作为参考定位点
+            show_lastPoint: null, // 用于可视化显示的“最后点”，不一定等于 lastPoint，可能用于辅助渲染
+            dragStatus: true, // 拖拽操作状态，true 表示当前允许拖拽，false 表示禁用拖拽
+            drawStatus: false // 绘图模式状态，true 表示当前正在进行绘制操作，false 表示非绘制状态
         };
     },
+
     watch: {
+        // 监听选中房间数据的变化
         selectedRoomData(newData) {
+            // 如果房间数据有内容，则将插入索引设置为当前数据长度（即在末尾插入）
             if (newData.length > 0) {
-                this.insertData.startIndex = newData.length; // 设置为当前长度
+                this.insertData.startIndex = newData.length;
             } else {
-                this.insertData.startIndex = 0; // 至少是1
+                // 如果为空，则插入索引置为 0（起始位置）
+                this.insertData.startIndex = 0;
             }
         }
     },
-    mounted() {
-        this.fetchRoomData();
 
+    mounted() {
+        // 组件挂载完成后，调用方法从后端或其他来源拉取房间数据
+        this.fetchRoomData();
+        // 添加键盘监听事件，用于响应用户快捷键操作（如删除、移动等）
         window.addEventListener('keydown', this.handleKeyPress);
     },
-
     beforeUnmount() {
+        // 在组件卸载前移除键盘监听，避免内存泄露或重复绑定
         window.removeEventListener('keydown', this.handleKeyPress);
     },
     computed: {
+        // 计算属性：返回确认按钮的文字说明，视当前临时点的状态而定
         getConfirmButtonText() {
             if (this.tempPoint) {
+                // 如果存在临时点，则判断是否位置冲突
                 return this.isOverlapping ? '非法位置' : '确认添加';
             }
+            // 否则返回无临时点提示
             return '无临时点';
         },
 
+        // 计算属性：判断当前临时点是否与已有点重叠
         isOverlapping() {
+            // 如果没有临时点，直接返回 false
             if (!this.tempPoint) return false;
-
-            // 点重叠检测（5像素容差）
+            // 判断点是否冲突（重叠），容差为 5 像素以内
             const pointConflict = this.selectedRoomData.some(point =>
                 this.calculateDistance(point, this.tempPoint) < 5
             );
-
-            // // 线重叠检测（3像素容差）
+            // 【注释掉的功能：线段重叠判断】
+            // 如果启用，可以判断新点是否靠近现有线段（容差 3 像素）
             // const lineConflict = this.selectedRoomData.some((point, index) => {
             //     const nextPoint = this.selectedRoomData[(index + 1) % this.selectedRoomData.length];
             //     return this.pointToLineDistance(this.tempPoint, point, nextPoint) < 3;
             // });
-            //|| lineConflict;
 
+            // 目前只返回点冲突结果
             return pointConflict;
         }
     },
+
     methods: {
+        // 修改后的保存方法
+        handleSave() {
+            // 判断是否选择了房间，如果没有选择房间，则提示错误信息
+            if (!this.selectedRoom) {
+                this.$message.error('请先选择房间');
+                return;
+            }
+
+            // 判断选择的房间数据是否至少有三个点，如果小于三个点则不能构成房间，提示错误信息
+            if (this.selectedRoomData.length < 3) {
+                this.$message.error('至少需要三个点才能构成房间');
+                return;
+            }
+
+            // 显示加载提示框，锁定界面并提示“数据存储中...”
+            const loading = this.$loading({
+                lock: true,
+                text: '数据存储中...',
+                spinner: 'el-icon-loading',
+                background: 'rgba(0, 0, 0, 0.7)'
+            });
+
+            // 整理数据：将 selectedRoomData 中的点数据转换为二维数组的格式
+            let sendPoints = []
+            for (let i = 0; i < this.selectedRoomData.length; i++) {
+                let tempPoint = []
+                tempPoint.push(this.selectedRoomData[i].x)
+                tempPoint.push(this.selectedRoomData[i].y)
+                sendPoints.push(tempPoint)
+            }
+
+            // 构造请求数据，包括房间的坐标、面积、长度等信息
+            const requestData = {
+                user_id: 1, // 这里用 1 作为示例，实际情况中可以替换为当前登录用户的 ID
+                room_id: this.selectedRoom.id, // 当前选择的房间 ID
+                room_data: sendPoints, // 整理后的房间坐标数据
+                data_max_x: Math.max(...this.selectedRoomData.map(p => p.x)), // 获取房间坐标中的最大 x 值
+                data_max_y: Math.max(...this.selectedRoomData.map(p => p.y)), // 获取房间坐标中的最大 y 值
+                default_start_x: this.selectedRoomData[0].x, // 获取房间第一个点的 x 坐标
+                default_start_y: this.selectedRoomData[0].y, // 获取房间第一个点的 y 坐标
+                room_area: this.calculatePolygonArea(this.selectedRoomData), // 计算房间的面积
+                room_length: this.calculatePolygonLength(this.selectedRoomData), // 计算房间的周长
+            };
+
+            // 调用 API 更新房间标签
+            updateRoomLabelById(requestData)
+                .then(response => {
+                    // 根据响应状态判断保存是否成功
+                    if (response.status === 200) {
+                        this.$message.success('保存成功');
+                        this.selectedRoom.islabel = 1; // 更新房间的标签状态
+                        this.fetchRoomData(); // 重新加载房间数据
+                    } else {
+                        this.$message.error(response.msg || '保存失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('保存失败:', error);
+                    this.$message.error(error.message || '保存失败，请检查网络连接');
+                })
+                .finally(() => {
+                    // 不论请求成功或失败，关闭加载提示
+                    loading.close();
+                });
+        },
+
+        // 工具拖动事件处理函数
+        handelToolDrag(opt) {
+            this.$refs.drawingCanvas.redraw(); // 重新绘制画布
+            // 切换工具栏按钮，隐藏标签管理弹框
+            this.isFocus = opt;
+            if (this.dragStatus) {
+                return;
+            }
+            // 切换拖拽和绘图模式状态
+            this.dragStatus = !this.dragStatus;
+            this.drawStatus = !this.drawStatus;
+        },
+
+        // 绘制点操作处理函数
+        handleDrawPoint(opt) {
+            // 设置所有选中房间的数据点为可见
+            this.selectedRoomData.forEach(point => {
+                point.visible = true;
+            });
+
+            // 如果有临时点，清除并重绘画布
+            if (this.tempPoint) {
+                this.tempPoint = null;
+                this.lastPoint = null;
+                this.$refs.drawingCanvas.redraw();
+            }
+
+            // 切换工具栏按钮，隐藏标签管理弹框
+            this.isFocus = opt;
+            if (this.drawStatus) {
+                return;
+            }
+            // 切换绘图和拖拽模式状态
+            this.drawStatus = !this.drawStatus;
+            this.dragStatus = !this.dragStatus;
+        },
+
+        // 插入点操作：在指定位置插入新点
         insertPointAfter() {
-            // 验证索引有效性（转换为0-based索引）
+            // 验证插入点索引有效性（转换为0-based索引）
             const index = this.insertData.startIndex - 1;
             console.log(index)
             if (index < -1 || index >= this.selectedRoomData.length) {
@@ -422,7 +524,7 @@ export default {
                 return;
             }
 
-            // 验证坐标输入
+            // 验证新点的坐标是否有效（x 和 y 不能为空）
             if (this.insertData.newPoint.x === null || this.insertData.newPoint.y === null) {
                 this.$message.warning('请填写完整坐标');
                 return;
@@ -434,145 +536,140 @@ export default {
                 this.insertData.newPoint.y
             );
 
-            // 冲突检测
+            // 冲突检测：检查新点是否与已有点重叠
             if (this.checkAutoOverlap(newPoint)) {
                 this.$message.warning('新点位置与现有图形冲突');
                 return;
             }
 
-            // 执行插入操作
+            // 执行插入操作：将新点插入到指定位置
             this.selectedRoomData.splice(index + 1, 0, newPoint);
-            this.insertData.startIndex = this.selectedRoomData.length
-            // 重置表单
+            this.insertData.startIndex = this.selectedRoomData.length;
+
+            // 重置表单数据
             this.insertData.newPoint = { x: null, y: null };
+            // 重绘画布
             this.$refs.drawingCanvas.redraw();
 
             this.$message.success(`成功在${index + 1}号点后插入新点`);
         },
+
+        // 计算两点之间的距离
         calculateDistance(p1, p2) {
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            return Math.sqrt(dx * dx + dy * dy).toFixed(2);
-        },
-        pointToLineDistance(p, a, b) {
-            const A = p.x - a.x;
-            const B = p.y - a.y;
-            const C = b.x - a.x;
-            const D = b.y - a.y;
-
-            const dot = A * C + B * D;
-            const lenSq = C * C + D * D;
-            let param = -1;
-
-            if (lenSq !== 0) {
-                param = dot / lenSq;
-            }
-
-            let xx, yy;
-            if (param < 0) {
-                xx = a.x;
-                yy = a.y;
-            } else if (param > 1) {
-                xx = b.x;
-                yy = b.y;
-            } else {
-                xx = a.x + param * C;
-                yy = a.y + param * D;
-            }
-
-            const dx = p.x - xx;
-            const dy = p.y - yy;
-            return Math.sqrt(dx * dx + dy * dy);
-        },
-        handleConfirmAction() {
-            if (this.isOverlapping) {
-                this.$message.warning('添加位置与已有图形重叠');
-                return;
-            }
-
-            if (this.tempPoint) {
-                this.confirmTempPoint();
-            } else {
-                if (this.selectedRoomData.length === 0) {
-                    this.$message.warning('请先添加起始点');
-                    return;
-                }
-                this.tempPoint = this.selectedRoomData[this.selectedRoomData.length - 1].clone();
-            }
+            const dx = p2.x - p1.x; // x 坐标差值
+            const dy = p2.y - p1.y; // y 坐标差值
+            return Math.sqrt(dx * dx + dy * dy); // 使用勾股定理计算距离
         },
 
+
+
+
+        // 选择房间
         selectRoom() {
+            // 根据选择的房间ID查找对应的房间对象
             const room = this.rooms.find(r => r.id === this.selectedRoomId);
             if (room) {
+                // 如果找到房间，设置 selectedRoom 为该房间对象，并将房间数据转换为 Point 对象
                 this.selectedRoom = room;
                 this.selectedRoomData = room.room_data.map(p => new Point(p[0], p[1]));
+                // 重新绘制画布
                 this.$refs.drawingCanvas.redraw();
             } else {
+                // 如果没有找到房间，则清空房间数据
                 this.selectedRoomData = [];
             }
         },
+
+        // 处理房间选择
         handleRoomSelected(roomId) {
+            // 设置选中的房间ID，并调用 selectRoom() 方法更新房间数据
             this.selectedRoomId = roomId;
             this.selectRoom();
         },
-        resetRoomPoints() {
+
+        // 重置房间数据
+        handleReset() {
+            // 将房间数据重置为当前房间的原始数据
             this.selectedRoomData = this.selectedRoom.room_data.map(p => new Point(p[0], p[1]));
-            this.insertData.startIndex = this.selectedRoomData.length
+            // 更新插入数据的起始索引
+            this.insertData.startIndex = this.selectedRoomData.length;
+            // 重新绘制画布
             this.$refs.drawingCanvas.redraw();
         },
-        removePoint(index) {
-            this.selectedRoomData.splice(index, 1);
-            this.insertData.startIndex = this.selectedRoomData.length
+
+        // 撤销上一步操作（删除最后一个点）
+        handleUndo() {
+            // 删除房间数据中的最后一个点
+            this.selectedRoomData.splice(this.selectedRoomData.length - 1, 1);
+            // 更新插入数据的起始索引
+            this.insertData.startIndex = this.selectedRoomData.length;
+            // 重新绘制画布
             this.$refs.drawingCanvas.redraw();
         },
-        editPoint(index) {
-            const newX = prompt('请输入新的X坐标：', this.selectedRoomData[index].x);
-            const newY = prompt('请输入新的Y坐标：', this.selectedRoomData[index].y);
-            if (newX !== null && newY !== null) {
-                this.selectedRoomData[index].x = Number(newX);
-                this.selectedRoomData[index].y = Number(newY);
-                this.$refs.drawingCanvas.redraw();
+
+        // 处理标签切换时的操作
+        handleTabChange(activeName) {
+            console.log('当前激活的tab:', activeName);
+            // 切换时更新当前模式
+            this.currentMode = activeName;
+
+            // 如果切换到插入标签，清空插入数据表单
+            if (activeName === 'insert') {
+                this.show_lastPoint = null;
+                this.insertData.newPoint = { x: null, y: null };
+            }
+
+            // 如果切换到移动标签，重置临时点
+            if (activeName === 'move') {
+                this.tempPoint = null;
             }
         },
-        toggleVisibility(index) {
-            this.selectedRoomData[index].visible = !this.selectedRoomData[index].visible;
-            this.$refs.drawingCanvas.redraw();
+
+        // 处理模式切换时的操作
+        handleModeChange(newVal) {
+            if (newVal) {
+                // 启用自动添加模式
+                this.$message.success('已启用自动添加模式');
+                this.tempPoint = null;
+                this.$refs.drawingCanvas.redraw();
+            } else {
+                // 切换为手动模式
+                this.show_lastPoint = null;
+                this.$message.info('已切换为手动模式');
+            }
         },
 
-        checkAutoOverlap(tempPoint) {
-            if (!tempPoint) return false;
-
-            // 点重叠检测（5像素容差）
-            const pointConflict = this.selectedRoomData.some(point =>
-                this.calculateDistance(point, tempPoint) < 5
-            );
-
-            // 线重叠检测（3像素容差）
-            // const lineConflict = this.selectedRoomData.some((point, index) => {
-            //     const nextPoint = this.selectedRoomData[(index + 1) % this.selectedRoomData.length];
-            //     return this.pointToLineDistance(tempPoint, point, nextPoint) < 3;
-            // });|| lineConflict;
-
-            return pointConflict;
-        },
+        // 移动点的操作
         movePoint(direction) {
+            // 将所有点设置为可见
+            this.selectedRoomData.forEach(point => {
+                point.visible = true;
+            });
 
-            // 获取基准点（自动模式下始终使用最后一个正式点）
+            // 获取基准点，自动模式下使用最后一个点
             let basePoint = this.autoAddMode ?
                 this.selectedRoomData[this.selectedRoomData.length - 1] :
                 (this.tempPoint || this.selectedRoomData[this.selectedRoomData.length - 1]);
 
-            // 确保basePoint已定义
-            if (!basePoint&& this.autoAddMode) {
-                basePoint = new Point(0,0);
+            // 如果基准点未定义，自动模式下使用新创建的(0,0)点
+            if (!basePoint && this.autoAddMode) {
+                basePoint = new Point(0, 0);
+                this.$message.success('为您创建新点，基于圆点移动');
+            }
+            // 如果基准点未定义，手动模式下使用新创建的(0,0)点
+            if (!basePoint && !this.autoAddMode) {
+                basePoint = new Point(0, 0);
+                this.selectedRoomData.push(basePoint);
+                this.$refs.drawingCanvas.redraw();
+                this.$message.success('为您创建新点，坐标为(0,0)');
+                return;
             }
 
-
-            // 计算新坐标
+            // 计算新的坐标点
             const newPoint = new Point(basePoint.x, basePoint.y);
-
             const distance = this.moveDistance.value || 0;
 
+            // 根据方向调整坐标
             switch (direction) {
                 case 'up':
                     newPoint.y += distance;
@@ -588,19 +685,20 @@ export default {
                     break;
             }
 
-            // 自动模式处理逻辑
+            // 自动模式下处理逻辑
             if (this.autoAddMode) {
                 if (this.checkAutoOverlap(newPoint)) {
                     this.$message.warning('添加位置与已有图形重叠');
                     return;
                 }
 
+                // 向房间数据中添加新点并重新绘制
                 this.selectedRoomData.push(newPoint.clone());
                 this.lastPoint = newPoint.clone();
                 this.show_lastPoint = newPoint.clone();
                 this.$refs.drawingCanvas.redraw();
             } else {
-                // 手动模式保持原有逻辑
+                // 手动模式下，保持原有逻辑
                 this.tempPoint = newPoint.clone();
                 this.lastPoint = this.selectedRoomData[this.selectedRoomData.length - 1];
                 this.firstPoint = this.selectedRoomData[0];
@@ -608,20 +706,24 @@ export default {
                 this.$refs.drawingCanvas.redraw();
             }
         },
+
+        // 放弃临时点
         quitTempPoint() {
             if (!this.tempPoint) return;
             this.tempPoint = null;
             this.$refs.drawingCanvas.redraw();
         },
+
+        // 确认临时点并将其添加到房间数据中
         confirmTempPoint() {
             if (!this.tempPoint) return;
-
             this.selectedRoomData.push(this.tempPoint);
             this.lastPoint = this.tempPoint;
             this.tempPoint = null;
             this.$refs.drawingCanvas.redraw();
-
         },
+
+        // 处理键盘按键事件，控制点的移动
         handleKeyPress(e) {
             const directions = {
                 ArrowUp: 'up',
@@ -630,49 +732,61 @@ export default {
                 ArrowRight: 'right'
             };
 
+            // 判断按键是否是方向键
             if (directions[e.key]) {
-                e.preventDefault();
-                this.movePoint(directions[e.key]);
-            }
-        },
-        handleModeChange(newVal) {
-            if (newVal) {
-                this.$message.success('已启用自动添加模式');
-                this.tempPoint = null;
-                this.$refs.drawingCanvas.redraw();
-            } else {
-                this.show_lastPoint = null
-                this.$message.info('已切换为手动模式');
-            }
-        },
-        validateModeChange() {
-            return this.selectedRoomData.length > 0 ||
-                confirm('当前无起始点，确定要启用自动模式吗？');
-        },
-        handleTabChange(activeName) {
-            console.log('当前激活的tab:', activeName);
-            // 这里可以添加切换tab时需要执行的逻辑
-            // 比如重置某些表单数据、切换模式等
-            this.currentMode = activeName; // 这个赋值其实已经通过v-model自动完成
-
-            // 示例：当切换到insert标签时清空插入表单
-            if (activeName === 'insert') {
-                this.show_lastPoint = null
-                this.insertData.newPoint = { x: null, y: null };
-            }
-
-            // 示例：当切换到move标签时重置临时点
-            if (activeName === 'move') {
-                this.tempPoint = null;
+                e.preventDefault(); // 阻止默认事件
+                this.movePoint(directions[e.key]); // 调用移动点的方法
             }
         },
 
+        // 处理点的显示/隐藏操作
         handleVisibilityChange(index) {
-            this.$refs.drawingCanvas.redraw(); // 触发重绘
-            this.$message.info(
-                `点 ${index + 1} 已${this.selectedRoomData[index].visible ? '显示' : '隐藏'}`
+            // 根据点的可见性状态显示相应的消息
+            this.$message[
+                this.selectedRoomData[index].visible ? 'success' : 'info'
+                ](`点 ${index + 1} 已${this.selectedRoomData[index].visible ? '显示' : '隐藏'}`);
+            this.$refs.drawingCanvas.redraw();
+        },
+
+        // 编辑点的坐标
+        editPoint(index) {
+            const newX = prompt('请输入新的X坐标：', this.selectedRoomData[index].x);
+            const newY = prompt('请输入新的Y坐标：', this.selectedRoomData[index].y);
+            // 如果用户输入了新坐标，更新点的坐标并重新绘制画布
+            if (newX !== null && newY !== null) {
+                this.selectedRoomData[index].x = Number(newX);
+                this.selectedRoomData[index].y = Number(newY);
+                this.$refs.drawingCanvas.redraw();
+            }
+        },
+
+        // 移除指定的点
+        removePoint(index) {
+            // 从房间数据中删除指定的点
+            this.selectedRoomData.splice(index, 1);
+            // 更新插入数据的起始索引
+            this.insertData.startIndex = this.selectedRoomData.length;
+            // 重新绘制画布
+            this.$refs.drawingCanvas.redraw();
+        },
+
+        // 检查点是否与现有图形重叠
+        checkAutoOverlap(tempPoint) {
+            if (!tempPoint) return false;
+
+            // 点重叠检测（5像素容差）
+            const pointConflict = this.selectedRoomData.some(point =>
+                this.calculateDistance(point, tempPoint) < 5
             );
-        },// 在methods中添加handleSave方法
+
+            return pointConflict;
+        },
+        //用于数字格式化显示千分位分隔符，例如：1234567 → 1,234,567。
+        formatNumberWithCommas(cellValue) {
+            if (cellValue == null) return '';
+            return cellValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        },
+
           // 计算多边形面积（使用Shoelace公式）
         calculatePolygonArea(points) {
             if (points.length < 3) return 0;
@@ -687,139 +801,92 @@ export default {
             return Math.abs(area / 2);
         },
         // 数字格式修改
-        formatNumberWithCommas( cellValue) {
-            // 处理可能的 null 或 undefined 值
-            if (cellValue == null) return '';
 
-            // 将数字转换为字符串并添加千位分隔符
-            return cellValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
-            // 如果你需要更精确的数字处理，也可以使用 toLocaleString 方法
-            // return Number(cellValue).toLocaleString('en-US');
-        },
-        // 计算多边形周长
+        // 计算多边形周长的方法
         calculatePolygonLength(points) {
+            // 如果传入的点数少于2个，无法形成多边形，直接返回0
             if (points.length < 2) return 0;
 
-            let length = 0;
+            let length = 0; // 初始化周长变量
+            // 遍历所有点，计算相邻两点之间的距离
             for (let i = 0; i < points.length; i++) {
+                // 计算下一个点的索引，注意如果是最后一个点，则与第一个点连线
                 const j = (i + 1) % points.length;
+                // 计算当前点和下一个点之间的横坐标差
                 const dx = points[j].x - points[i].x;
+                // 计算当前点和下一个点之间的纵坐标差
                 const dy = points[j].y - points[i].y;
+                // 使用勾股定理计算两点之间的距离，并将其加到总长度上
                 length += Math.sqrt(dx * dx + dy * dy);
             }
+            // 返回计算出的多边形周长
             return length;
         },
-        fetchRoomData() {
-            if(this.annotation_room_id===-1){
 
+// 确认操作的方法
+        handleConfirmAction() {
+            // 检查当前图形是否与已有图形重叠，如果重叠，弹出警告
+            if (this.isOverlapping) {
+                this.$message.warning('添加位置与已有图形重叠');
+                return;
             }
-            const requestBody = {
-                user_id:this.user_id,
-                house_id: this.house_id
-            };
 
-            axios.post('http://192.168.51.67:8888/getAnnotationHouseById', requestBody)
+            // 如果有临时点，则确认该点
+            if (this.tempPoint) {
+                this.confirmTempPoint();
+            } else {
+                // 如果没有临时点，且房间数据为空，则提示用户先添加起始点
+                if (this.selectedRoomData.length === 0) {
+                    this.$message.warning('请先添加起始点');
+                    return;
+                }
+                // 否则，将最后一个点作为临时点
+                this.tempPoint = this.selectedRoomData[this.selectedRoomData.length - 1].clone();
+            }
+        },
+
+// 获取房间数据的方法
+        fetchRoomData() {
+            // 检查注释房间ID是否为-1，如果是，可以执行某些操作（具体逻辑待补充）
+            if(this.annotation_room_id === -1){
+                // 这里可以添加处理注释房间ID为-1的逻辑
+            }
+
+            // 创建请求体，包含用户ID和房屋ID
+            const requestBody = {
+                user_id: this.user_id,  // 当前用户ID
+                house_id: this.house_id  // 当前房屋ID
+            };
+            let url = this.$serverUrl + 'getAnnotationHouseById'
+            // 通过axios向服务器发送POST请求，获取房间数据
+            axios.post(url, requestBody)
                 .then(response => {
-                    const {status, msg, data} = response.data;
+                    const { status, msg, data } = response.data; // 解构响应数据
                     if (status === 200) {
+                        // 如果响应成功，将返回的房间列表存入rooms
                         this.rooms = data.room_list;
+                        // 如果房间列表不为空，设置默认选中的房间数据
                         if (this.rooms.length > 0) {
-                            this.selectedRoom = this.rooms[0];
-                            this.selectedRoomId = this.selectedRoom.id;
+                            this.selectedRoom = this.rooms[0];  // 选择第一个房间
+                            this.selectedRoomId = this.selectedRoom.id;  // 设置房间ID
+                            // 将房间数据转换为Point对象并存储
                             this.selectedRoomData = this.selectedRoom.room_data.map(p => new Point(p[0], p[1]));
-                            // 设置默认的 startIndex
+                            // 设置插入数据的起始索引
                             this.insertData.startIndex = this.selectedRoomData.length || 1;
+                            // 重新绘制画布
                             this.$refs.drawingCanvas.redraw();
                         }
                     } else {
+                        // 如果响应状态不为200，打印错误信息
                         console.error(msg);
                     }
                 })
                 .catch(error => {
+                    // 如果请求失败，打印错误信息
                     console.error('获取房间数据失败:', error);
                 });
         },
 
-// 修改后的保存方法
-        handleSave() {
-
-
-            if (!this.selectedRoom) {
-                this.$message.error('请先选择房间');
-                return;
-            }
-            if (this.selectedRoomData.length < 3) {
-                this.$message.error('至少需要三个点才能构成房间');
-                return;
-            }
-            const loading = this.$loading({
-                lock: true,
-                text: '数据存储中...',
-                spinner: 'el-icon-loading',
-                background: 'rgba(0, 0, 0, 0.7)'
-            });
-            // 整合数据
-            let sendPoints = []
-            for(let i = 0; i < this.selectedRoomData.length; i++){
-                let tempPoint = []
-                tempPoint.push(this.selectedRoomData[i].x)
-                tempPoint.push(this.selectedRoomData[i].y)
-                sendPoints.push(tempPoint)
-            }
-
-            const requestData = {
-                user_id: 1,
-                room_id: this.selectedRoom.id,
-                // room_data: this.selectedRoomData.map(p => [p.x, p.y]),
-                room_data: sendPoints,
-                data_max_x: Math.max(...this.selectedRoomData.map(p => p.x)),
-                data_max_y: Math.max(...this.selectedRoomData.map(p => p.y)),
-                default_start_x: this.selectedRoomData[0].x,
-                default_start_y: this.selectedRoomData[0].y,
-                room_area: this.calculatePolygonArea(this.selectedRoomData),
-                room_length: this.calculatePolygonLength(this.selectedRoomData),
-            };
-            console.log("发送的数据：", JSON.stringify(requestData, null, 2));
-            updateRoomLabelById(requestData)
-                .then(response => {
-                    // 注意这里响应结构可能需要调整
-                    if (response.status === 200) { // 根据实际响应结构调整
-                        this.$message.success('保存成功');
-                        this.selectedRoom.islabel = 1;
-                        this.fetchRoomData();
-                    } else {
-                        this.$message.error(response.msg || '保存失败');
-                    }
-                })
-                .catch(error => {
-                    console.error('保存失败:', error);
-                    this.$message.error(error.message || '保存失败，请检查网络连接');
-                })
-                .finally(() => {
-                    loading.close();
-                });
-        },
-        handelToolDrag(opt) {
-            //切换时隐藏标签管理的弹框
-            this.isFocus = opt;
-            this.isFocus = '';
-            this.dragStatus = !this.dragStatus;
-            if (!this.dragStatus) {
-                this.isFocus = '';
-            } else {
-                this.isFocus = opt;
-            }
-
-        },
-        handelToolRect(opt) {
-            this.isFocus = opt;
-
-        },
-        handelToolPolygon(opt) {
-            this.isFocus = opt;
-
-        },
 
 
     }
@@ -831,18 +898,48 @@ export default {
 .container{
     display: flex;
     height: 100vh; /* 占满整个视口高度 */
+
 }
 
 .sidebar-left {
-    width: 4vw; /* 或固定宽度如 240px */
-    background-color: #f0f0f0;
-    padding: 1rem;
+    width: 4vw; /* 或使用固定宽度如 240px */
+
+    padding: 1rem 0.5rem;
     box-sizing: border-box;
+
+    height: 100vh; /* 占满屏幕高度 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
+
+.tool-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    color: #606266;
+}
+
+.tool-icon:hover,
+.tool-icon.focus {
+    color: #409EFF;
+}
+
+.tool-icon i {
+    font-size: 20px;
+}
+
+.tool-label {
+    font-size: 12px;
+    margin-top: 4px;
+}
+
 .sidebar-right {
     position: absolute; /* 或 fixed，看你是否希望它随页面滚动 */
     right: 0;            /* 紧贴右边 */
-
+    top:4rem;
     width: 450px;
     height: 100vh;       /* 全屏高度 */
     //width: 20vw;
@@ -899,11 +996,11 @@ export default {
 
 }
 .inner-label {
-     font-size: 12px;
-     padding: 0 4px;
-     position: relative;
-     top: -1px;
- }
+    font-size: 12px;
+    padding: 0 4px;
+    position: relative;
+    top: -1px;
+}
 
 
 /* 在style部分添加 */
@@ -951,7 +1048,7 @@ export default {
     }
 }
 .resultArea {
-    max-height: 290px;
+    max-height: 320px;
 
 }
 /* 表头居中 */
@@ -1056,6 +1153,11 @@ export default {
     margin-top: 50px;
     width: 100px;
     height:40px ;
+}
+.tool-divider {
+    height: 1px;
+    background-color: #dcdfe6;
+    margin: 0.5rem 0;
 }
 
 
